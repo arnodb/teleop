@@ -1,0 +1,24 @@
+[package]
+name = "teleop"
+version = "0.1.0-dev"
+edition = "2021"
+rust-version = "1.85.0"
+license-file = "../LICENSE"
+description = "Teleoperate Rust Processes"
+documentation = "https://docs.rs/teleop"
+repository = "https://github.com/arnodb/teleop"
+readme = "../README.md"
+
+[dependencies]
+anyhow = "1"
+async-signal = "0.2"
+async-stream = "0.3"
+capnp = "0.21"
+capnp-rpc = "0.21"
+futures = "0.3"
+nix = { version = "0.30", features = ["signal"] }
+smol = "2"
+smol-cancellation-token = "0.1"
+
+[build-dependencies]
+capnpc = "0.21"
