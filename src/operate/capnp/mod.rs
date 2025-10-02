@@ -1,3 +1,14 @@
+//! Cap'n Proto RPC capabilities.
+//!
+//! [`TeleopServer`] is the structure to create the main Teleop server and set it up with
+//! predefined services.
+//!
+//! [`run_server_connection`] is called to wire some communication streams with a [`TeleopServer`]
+//! and operate the entire stack.
+//!
+//! [`client_connection`] is called to wire some communication streams and expose a `Teleop` client
+//! endpoint.
+
 use std::{collections::BTreeMap, sync::LazyLock};
 
 use capnp::{
@@ -16,6 +27,7 @@ pub mod echo;
 
 capnp::generated_code!(pub mod teleop_capnp);
 
+/// Main structure to start teleoperations with Cap'n Proto RPC.
 #[derive(Default)]
 pub struct TeleopServer {
     #[allow(clippy::type_complexity)]
@@ -24,10 +36,14 @@ pub struct TeleopServer {
 }
 
 impl TeleopServer {
+    /// Creates a new server with no services registered.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Registers a new service, lazily initialized via the passed callback.
+    ///
+    /// The service is not initialized until it is requested by a client.
     pub fn register_service<Client, Server, F>(&mut self, name: impl Into<String>, f: F)
     where
         Client: FromClientHook + FromServer<Server>,
@@ -63,6 +79,13 @@ impl teleop_capnp::teleop::Server for TeleopServer {
     }
 }
 
+/// Runs a new RPC server connection.
+///
+/// The communication goes through the passed input and output.
+///
+/// The Cap'n Proto main service is passed as an abstract `capnp` client.
+///
+/// The connection can be cancelled with the passed cancellation token.
 pub async fn run_server_connection<R, W>(
     input: R,
     output: W,
@@ -91,6 +114,12 @@ pub async fn run_server_connection<R, W>(
     }
 }
 
+/// Creates a RPC client connection.
+///
+/// The communication goes through the passed input and output.
+///
+/// The returned value is made of a system to be run by the async runtime and the client interface
+/// to initiate RPC requests.
 pub async fn client_connection<R, W>(
     input: R,
     output: W,

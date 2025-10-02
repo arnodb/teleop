@@ -1,3 +1,14 @@
+//! Attach API using a UNIX socket.
+//!
+//! It is very much inspired by Java [Attach API](https://docs.oracle.com/javase/8/docs/technotes/guides/attach/index.html):
+//! * the process to be teleoperated waits for a signal
+//! * if some conditions are met then it opens the UNIX socket at a known location
+//! * the client can then connect to the unix socket
+//!
+//! [`listen`] is the function to call in the process to be teleoperated.
+//!
+//! [`connect`] is the function to call in the client to initiate the teleoperation communication.
+
 use std::{fs::File, os::unix::net::SocketAddr, path::PathBuf, time::Duration};
 
 use async_signal::{Signal, Signals};
@@ -13,6 +24,9 @@ use smol::{
 };
 use smol_cancellation_token::CancellationToken;
 
+/// Starts listening for attach signals and return incoming connections as a async `Stream`.
+///
+/// The listening process can be interrupted by cancelling the passed cancellation token.
 pub fn listen(
     cancellation_token: CancellationToken,
 ) -> impl Stream<Item = Result<(UnixStream, SocketAddr), Box<dyn std::error::Error>>> {
@@ -78,6 +92,9 @@ async fn await_connection(
     }
 }
 
+/// Connects to a process identified by its ID.
+///
+/// Returns the opened socket on success.
 pub async fn connect(pid: u32) -> Result<UnixStream, Box<dyn std::error::Error>> {
     let socket_file_path = socket_file_path(pid);
 
