@@ -1,0 +1,30 @@
+name: Continuous Integration
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+
+  main_stable:
+    name: Rust stable
+    uses: ./.github/workflows/_build.yml
+    with:
+      rust_toolchain: stable
+      with_rustfmt: true
+      with_clippy: true
+      with_audit: true
+
+  main_1_85_0:
+    name: Rust 1.85.0
+    uses: ./.github/workflows/_build.yml
+    with:
+      rust_toolchain: 1.85.0
+      pre_build_script: ./scripts/msrv_pin_dependencies.sh
+
+  main_nightly:
+    name: Rust nightly
+    uses: ./.github/workflows/_build.yml
+    with:
+      rust_toolchain: nightly
+
