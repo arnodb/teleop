@@ -1,9 +1,9 @@
 use std::{pin::pin, sync::LazyLock};
 
 use futures::{task::LocalSpawnExt, AsyncReadExt, StreamExt};
-use smol_cancellation_token::CancellationToken;
 use teleop::{
     attach::unix_socket::listen,
+    cancellation::CancellationToken,
     operate::capnp::{
         self,
         echo::{echo_capnp, EchoServer},

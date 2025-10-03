@@ -29,4 +29,5 @@
 //!   `echo` service, and send echo requests.
 
 pub mod attach;
+pub mod cancellation;
 pub mod operate;

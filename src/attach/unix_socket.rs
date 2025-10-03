@@ -22,7 +22,8 @@ use smol::{
     net::unix::{UnixListener, UnixStream},
     Timer,
 };
-use smol_cancellation_token::CancellationToken;
+
+use crate::cancellation::CancellationToken;
 
 /// Starts listening for attach signals and return incoming connections as a async `Stream`.
 ///

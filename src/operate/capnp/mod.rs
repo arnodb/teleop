@@ -21,7 +21,8 @@ use futures::{
     io::{BufReader, BufWriter},
     AsyncRead, AsyncWrite, FutureExt,
 };
-use smol_cancellation_token::CancellationToken;
+
+use crate::cancellation::CancellationToken;
 
 pub mod echo;
 
