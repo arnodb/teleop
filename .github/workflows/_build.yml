@@ -87,3 +87,8 @@ jobs:
         name: Compile and run tests
         run: cargo test ${{ inputs.rust_features }} --verbose
 
+      - id: examples
+        name: Check examples
+        run: |
+          ./scripts/check_examples.sh
+

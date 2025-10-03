@@ -12,7 +12,12 @@ use teleop::{
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("PID: {}", std::process::id());
+    let pid = std::process::id();
+    println!("PID: {pid}");
+    if let Ok(pid_file) = std::env::var("PID_FILE") {
+        std::fs::write(&pid_file, pid.to_string()).unwrap();
+        println!("Wrote it to {pid_file}");
+    }
 
     let mut exec = futures::executor::LocalPool::new();
     let spawn = exec.spawner();
@@ -23,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let join_main = std::thread::spawn({
             let cancellation_token = cancellation_token.clone();
             move || -> Result<(), String> {
-                std::thread::sleep(std::time::Duration::from_secs(60));
+                std::thread::sleep(std::time::Duration::from_secs(15));
                 cancellation_token.cancel();
                 Ok(())
             }

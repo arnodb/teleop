@@ -31,6 +31,9 @@ check_all:
     cargo build --all-features
     cargo test --all-features
 
+    just stable
+    ./scripts/check_examples.sh
+
 # Toolchain management
 
 stable:
