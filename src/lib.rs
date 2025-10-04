@@ -28,6 +28,8 @@
 //! * The client example shows how to setup the client, initiate the attach process, request the
 //!   `echo` service, and send echo requests.
 
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+
 pub mod attach;
 pub mod cancellation;
 pub mod operate;

@@ -23,3 +23,6 @@ capnpc = "0.21"
 
 [dev-dependencies]
 sluice = "0.6"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }

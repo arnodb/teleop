@@ -175,6 +175,7 @@ impl Drop for AutoDropFile {
 }
 
 #[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use std::pin::pin;
 
