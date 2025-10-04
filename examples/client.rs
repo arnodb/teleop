@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut exec = futures::executor::LocalPool::new();
     let spawn = exec.spawner();
 
-    exec.run_until(async move {
+    let res = exec.run_until(async move {
         let stream = connect(pid).await?;
         let (input, output) = stream.split();
         let (rpc_system, teleop) = client_connection(input, output).await;
@@ -29,27 +29,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         })?;
 
-        let mut req = teleop.service_request();
-        req.get().set_name("echo");
-        let echo = req.send().promise.await?;
-        let echo = echo.get()?.get_service();
-        let echo: echo_capnp::echo::Client = echo.get_as()?;
+        let res = async {
+            let mut req = teleop.service_request();
+            req.get().set_name("echo");
+            let echo = req.send().promise.await?;
+            let echo = echo.get()?.get_service();
+            let echo: echo_capnp::echo::Client = echo.get_as()?;
 
-        println!("got echo service");
+            println!("got echo service");
 
-        let mut req = echo.echo_request();
-        req.get().set_message("hello!");
-        let reply = req.send().promise.await?;
-        let reply = reply.get()?.get_reply()?.to_str()?;
+            let mut req = echo.echo_request();
+            req.get().set_message("hello!");
+            let reply = req.send().promise.await?;
+            let reply = reply.get()?.get_reply()?.to_str()?;
 
-        println!("{}", reply);
+            println!("{}", reply);
 
-        rpc_disconnect.await?;
+            Ok::<_, Box<dyn std::error::Error>>(())
+        }
+        .await;
+
+        let res2 = rpc_disconnect.await;
+
+        res?;
+
+        res2?;
 
         Ok::<_, Box<dyn std::error::Error>>(())
-    })?;
+    });
 
     exec.run();
+
+    res?;
 
     Ok(())
 }

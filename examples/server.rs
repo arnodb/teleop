@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut exec = futures::executor::LocalPool::new();
     let spawn = exec.spawner();
 
-    exec.run_until(async {
+    let res = exec.run_until(async {
         let cancellation_token = CancellationToken::new();
 
         let join_main = std::thread::spawn({
@@ -60,9 +60,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .map_err(|_err| "Unable to join main thread".to_owned())??;
 
         Ok::<_, Box<dyn std::error::Error>>(())
-    })?;
+    });
 
     exec.run();
+
+    res?;
 
     Ok(())
 }
