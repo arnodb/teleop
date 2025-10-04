@@ -95,3 +95,30 @@ impl Future for CancelledFuture {
         }
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod tests {
+    use futures::executor::block_on;
+
+    use super::*;
+
+    #[test]
+    fn test_cancel_token() {
+        let token = CancellationToken::new();
+        let token1 = token.clone();
+
+        let th1 = std::thread::spawn(move || {
+            block_on(async {
+                token1.cancelled().await;
+            });
+        });
+
+        let th2 = std::thread::spawn(move || {
+            token.cancel();
+        });
+
+        th1.join().unwrap();
+        th2.join().unwrap();
+    }
+}
