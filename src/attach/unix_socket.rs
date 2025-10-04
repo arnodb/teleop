@@ -174,85 +174,93 @@ impl Drop for AutoDropFile {
     }
 }
 
-#[test]
-fn test_unic_socket_attachment() {
-    use futures::channel::oneshot;
-    use futures::io::{BufReader, BufWriter};
-    use futures::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, StreamExt};
+#[cfg(test)]
+mod tests {
     use std::pin::pin;
 
-    let (sender, receiver) = oneshot::channel::<()>();
+    use futures::{
+        channel::oneshot,
+        io::{BufReader, BufWriter},
+        AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, StreamExt,
+    };
 
-    let server = || -> Result<(), Box<dyn std::error::Error>> {
-        let mut exec = futures::executor::LocalPool::new();
+    use super::*;
 
-        let cancellation_token = CancellationToken::new();
+    #[test]
+    fn test_unix_socket_attachment() {
+        let (sender, receiver) = oneshot::channel::<()>();
 
-        let res = exec.run_until(async {
-            let mut conn_stream = pin!(listen(cancellation_token.clone()));
-            println!("server is listening");
-            sender.send(()).unwrap();
-            if let Some(stream) = conn_stream.next().await {
-                println!("server received connection");
-                let (stream, _addr) = stream?;
+        let server = || -> Result<(), Box<dyn std::error::Error>> {
+            let mut exec = futures::executor::LocalPool::new();
+
+            let cancellation_token = CancellationToken::new();
+
+            let res = exec.run_until(async {
+                let mut conn_stream = pin!(listen(cancellation_token.clone()));
+                println!("server is listening");
+                sender.send(()).unwrap();
+                if let Some(stream) = conn_stream.next().await {
+                    println!("server received connection");
+                    let (stream, _addr) = stream?;
+                    let (input, output) = stream.split();
+                    let mut input = BufReader::new(input);
+                    let mut output = BufWriter::new(output);
+
+                    let mut read = String::new();
+                    while input.read_line(&mut read).await? == 0 {}
+                    assert_eq!(read, "ping\n");
+                    println!("server received ping");
+
+                    output.write_all("pong\n".as_bytes()).await?;
+                    output.flush().await?;
+                    println!("server wrote pong");
+                }
+
+                Ok::<_, Box<dyn std::error::Error>>(())
+            });
+
+            exec.run();
+
+            res?;
+
+            Ok(())
+        };
+
+        let client = || -> Result<(), Box<dyn std::error::Error>> {
+            let pid = std::process::id();
+
+            let mut exec = futures::executor::LocalPool::new();
+
+            let res = exec.run_until(async move {
+                let () = receiver.await?;
+                println!("client is initiating connection");
+                let stream = connect(pid).await?;
                 let (input, output) = stream.split();
                 let mut input = BufReader::new(input);
                 let mut output = BufWriter::new(output);
+                println!("client is connected");
+                output.write_all("ping\n".as_bytes()).await?;
+                output.flush().await?;
+                println!("client wrote ping");
 
                 let mut read = String::new();
                 while input.read_line(&mut read).await? == 0 {}
-                assert_eq!(read, "ping\n");
-                println!("server received ping");
+                assert_eq!(read, "pong\n");
+                println!("client received pong");
 
-                output.write_all("pong\n".as_bytes()).await?;
-                output.flush().await?;
-                println!("server wrote pong");
-            }
+                Ok::<_, Box<dyn std::error::Error>>(())
+            });
 
-            Ok::<_, Box<dyn std::error::Error>>(())
-        });
+            exec.run();
 
-        exec.run();
+            res?;
 
-        res?;
+            Ok(())
+        };
 
-        Ok(())
-    };
-
-    let client = || -> Result<(), Box<dyn std::error::Error>> {
-        let pid = std::process::id();
-
-        let mut exec = futures::executor::LocalPool::new();
-
-        let res = exec.run_until(async move {
-            let () = receiver.await?;
-            println!("client is initiating connection");
-            let stream = connect(pid).await?;
-            let (input, output) = stream.split();
-            let mut input = BufReader::new(input);
-            let mut output = BufWriter::new(output);
-            println!("client is connected");
-            output.write_all("ping\n".as_bytes()).await?;
-            output.flush().await?;
-            println!("client wrote ping");
-
-            let mut read = String::new();
-            while input.read_line(&mut read).await? == 0 {}
-            assert_eq!(read, "pong\n");
-            println!("client received pong");
-
-            Ok::<_, Box<dyn std::error::Error>>(())
-        });
-
-        exec.run();
-
-        res?;
-
-        Ok(())
-    };
-
-    let s = std::thread::spawn(|| server().unwrap());
-    let c = std::thread::spawn(|| client().unwrap());
-    c.join().unwrap();
-    s.join().unwrap();
+        let s = std::thread::spawn(|| server().unwrap());
+        let c = std::thread::spawn(|| client().unwrap());
+        c.join().unwrap();
+        s.join().unwrap();
+    }
 }
