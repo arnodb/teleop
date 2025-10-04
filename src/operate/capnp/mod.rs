@@ -75,7 +75,7 @@ impl teleop_capnp::teleop::Server for TeleopServer {
                 .set_as_capability((*service).clone());
             Promise::ok(())
         } else {
-            Promise::err(Error::unimplemented(format!("service {name} not found")))
+            Promise::err(Error::failed(format!("service {name} not found")))
         }
     }
 }
@@ -217,6 +217,14 @@ mod tests {
                     let reply = reply.get()?.get_reply()?.to_str()?;
 
                     println!("{}", reply);
+
+                    let mut req = teleop.service_request();
+                    req.get().set_name("tango");
+                    let tango_res = req.send().promise.await;
+                    assert!(tango_res.is_err());
+                    let tango_err = tango_res.err().unwrap();
+                    assert_eq!(tango_err.kind, capnp::ErrorKind::Failed);
+                    assert!(tango_err.extra.contains("service tango not found"));
 
                     Ok::<_, Box<dyn std::error::Error>>(())
                 }
