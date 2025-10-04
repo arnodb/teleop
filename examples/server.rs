@@ -5,9 +5,8 @@ use teleop::{
     attach::unix_socket::listen,
     cancellation::CancellationToken,
     operate::capnp::{
-        self,
         echo::{echo_capnp, EchoServer},
-        teleop_capnp, TeleopServer,
+        run_server_connection, teleop_capnp, TeleopServer,
     },
 };
 
@@ -48,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let client = client.client.hook.clone();
                 async move {
                     let (input, output) = stream.split();
-                    capnp::run_server_connection(input, output, client, cancellation_token).await;
+                    run_server_connection(input, output, client, cancellation_token).await;
                 }
             }) {
                 eprintln!("Error while spawning connection handler: {e}");

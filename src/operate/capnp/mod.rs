@@ -143,3 +143,103 @@ where
         rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
     (rpc_system, teleop)
 }
+
+#[cfg(test)]
+mod tests {
+
+    use futures::task::LocalSpawnExt;
+
+    use super::{
+        echo::{echo_capnp, EchoServer},
+        *,
+    };
+
+    #[test]
+    fn test_capnp_teleop() {
+        let (client_input, server_output) = sluice::pipe::pipe();
+        let (server_input, client_output) = sluice::pipe::pipe();
+
+        let server = || -> Result<(), Box<dyn std::error::Error>> {
+            let mut server = TeleopServer::new();
+            server.register_service::<echo_capnp::echo::Client, _, _>("echo", || EchoServer);
+            let client = capnp_rpc::new_client::<teleop_capnp::teleop::Client, _>(server);
+
+            let mut exec = futures::executor::LocalPool::new();
+
+            let res = exec.run_until(async move {
+                let cancellation_token = CancellationToken::new();
+
+                run_server_connection(
+                    server_input,
+                    server_output,
+                    client.client.hook,
+                    cancellation_token,
+                )
+                .await;
+
+                Ok::<_, Box<dyn std::error::Error>>(())
+            });
+
+            exec.run();
+
+            res?;
+
+            Ok(())
+        };
+
+        let client = || -> Result<(), Box<dyn std::error::Error>> {
+            let mut exec = futures::executor::LocalPool::new();
+            let spawn = exec.spawner();
+
+            let res = exec.run_until(async move {
+                let (rpc_system, teleop) = client_connection(client_input, client_output).await;
+                let rpc_disconnect = rpc_system.get_disconnector();
+
+                spawn.spawn_local(async {
+                    if let Err(e) = rpc_system.await {
+                        eprintln!("Connection interrupted {e}");
+                    }
+                })?;
+
+                let res = async {
+                    let mut req = teleop.service_request();
+                    req.get().set_name("echo");
+                    let echo = req.send().promise.await?;
+                    let echo = echo.get()?.get_service();
+                    let echo: echo_capnp::echo::Client = echo.get_as()?;
+
+                    println!("got echo service");
+
+                    let mut req = echo.echo_request();
+                    req.get().set_message("hello!");
+                    let reply = req.send().promise.await?;
+                    let reply = reply.get()?.get_reply()?.to_str()?;
+
+                    println!("{}", reply);
+
+                    Ok::<_, Box<dyn std::error::Error>>(())
+                }
+                .await;
+
+                let res2 = rpc_disconnect.await;
+
+                res?;
+
+                res2?;
+
+                Ok::<_, Box<dyn std::error::Error>>(())
+            });
+
+            exec.run();
+
+            res?;
+
+            Ok(())
+        };
+
+        let s = std::thread::spawn(|| server().unwrap());
+        let c = std::thread::spawn(|| client().unwrap());
+        c.join().unwrap();
+        s.join().unwrap();
+    }
+}

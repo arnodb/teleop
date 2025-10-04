@@ -20,3 +20,6 @@ smol = "2"
 
 [build-dependencies]
 capnpc = "0.21"
+
+[dev-dependencies]
+sluice = "0.6"
