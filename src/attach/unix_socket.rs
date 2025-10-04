@@ -9,7 +9,7 @@
 //!
 //! [`connect`] is the function to call in the client to initiate the teleoperation communication.
 
-use std::{fs::File, os::unix::net::SocketAddr, path::PathBuf, time::Duration};
+use std::{fs::File, future::Future, os::unix::net::SocketAddr, path::PathBuf, time::Duration};
 
 use async_signal::{Signal, Signals};
 use async_stream::try_stream;
@@ -31,8 +31,14 @@ use crate::cancellation::CancellationToken;
 pub fn listen(
     cancellation_token: CancellationToken,
 ) -> impl Stream<Item = Result<(UnixStream, SocketAddr), Box<dyn std::error::Error>>> {
+    // It is important to keep this in the synchronous part in order to ensure the listening
+    // process is ready to accept attachment requests even if the future is not awaited.
+    //
+    // Nevertheless, the error will only be raised if the future is awaited.
+    let signal_attached = await_attach_signal(cancellation_token.clone());
+
     try_stream! {
-        await_attach_signal(cancellation_token.clone()).await?;
+        signal_attached.await?;
 
         if cancellation_token.is_cancelled() {
             return;
@@ -50,30 +56,40 @@ type AwaitAttachSignalResult = Result<(), Box<dyn std::error::Error>>;
 
 type AwaitConnectionResult = Result<Option<(UnixStream, SocketAddr)>, Box<dyn std::error::Error>>;
 
-async fn await_attach_signal(cancellation_token: CancellationToken) -> AwaitAttachSignalResult {
-    let mut signals = Signals::new([Signal::Quit])?;
+fn await_attach_signal(
+    cancellation_token: CancellationToken,
+) -> impl Future<Output = AwaitAttachSignalResult> {
+    // It is important to keep this in the synchronous part in order to ensure the listening
+    // process is ready to accept attachment requests even if the future is not awaited.
+    //
+    // Nevertheless, the error will only be raised if the future is awaited.
+    let signals = Signals::new([Signal::Quit]);
 
-    loop {
-        let mut signal = signals.next().fuse();
-        let mut cancelled = cancellation_token.cancelled().fuse();
-        futures::select! {
-            signal = signal => {
-                if let Some(Ok(signal)) = signal {
-                    if signal == Signal::Quit {
-                        let attach_file_path = attach_file_path(std::process::id());
-                        if attach_file_path.exists(){
-                            break;
+    async move {
+        let mut signals = signals?;
+
+        loop {
+            let mut signal = signals.next().fuse();
+            let mut cancelled = cancellation_token.cancelled().fuse();
+            futures::select! {
+                signal = signal => {
+                    if let Some(Ok(signal)) = signal {
+                        if signal == Signal::Quit {
+                            let attach_file_path = attach_file_path(std::process::id());
+                            if attach_file_path.exists(){
+                                break;
+                            }
                         }
                     }
                 }
-            }
-            () = cancelled => {
-                break;
+                () = cancelled => {
+                    break;
+                }
             }
         }
-    }
 
-    Ok(())
+        Ok(())
+    }
 }
 
 async fn await_connection(
@@ -156,4 +172,87 @@ impl Drop for AutoDropFile {
             std::fs::remove_file(&self.0).unwrap();
         }
     }
+}
+
+#[test]
+fn test_unic_socket_attachment() {
+    use futures::channel::oneshot;
+    use futures::io::{BufReader, BufWriter};
+    use futures::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, StreamExt};
+    use std::pin::pin;
+
+    let (sender, receiver) = oneshot::channel::<()>();
+
+    let server = || -> Result<(), Box<dyn std::error::Error>> {
+        let mut exec = futures::executor::LocalPool::new();
+
+        let cancellation_token = CancellationToken::new();
+
+        let res = exec.run_until(async {
+            let mut conn_stream = pin!(listen(cancellation_token.clone()));
+            println!("server is listening");
+            sender.send(()).unwrap();
+            if let Some(stream) = conn_stream.next().await {
+                println!("server received connection");
+                let (stream, _addr) = stream?;
+                let (input, output) = stream.split();
+                let mut input = BufReader::new(input);
+                let mut output = BufWriter::new(output);
+
+                let mut read = String::new();
+                while input.read_line(&mut read).await? == 0 {}
+                assert_eq!(read, "ping\n");
+                println!("server received ping");
+
+                output.write_all("pong\n".as_bytes()).await?;
+                output.flush().await?;
+                println!("server wrote pong");
+            }
+
+            Ok::<_, Box<dyn std::error::Error>>(())
+        });
+
+        exec.run();
+
+        res?;
+
+        Ok(())
+    };
+
+    let client = || -> Result<(), Box<dyn std::error::Error>> {
+        let pid = std::process::id();
+
+        let mut exec = futures::executor::LocalPool::new();
+
+        let res = exec.run_until(async move {
+            let () = receiver.await?;
+            println!("client is initiating connection");
+            let stream = connect(pid).await?;
+            let (input, output) = stream.split();
+            let mut input = BufReader::new(input);
+            let mut output = BufWriter::new(output);
+            println!("client is connected");
+            output.write_all("ping\n".as_bytes()).await?;
+            output.flush().await?;
+            println!("client wrote ping");
+
+            let mut read = String::new();
+            while input.read_line(&mut read).await? == 0 {}
+            assert_eq!(read, "pong\n");
+            println!("client received pong");
+
+            Ok::<_, Box<dyn std::error::Error>>(())
+        });
+
+        exec.run();
+
+        res?;
+
+        Ok(())
+    };
+
+    let s = std::thread::spawn(|| server().unwrap());
+    let c = std::thread::spawn(|| client().unwrap());
+    c.join().unwrap();
+    s.join().unwrap();
 }

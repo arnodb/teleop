@@ -28,7 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let join_main = std::thread::spawn({
             let cancellation_token = cancellation_token.clone();
             move || -> Result<(), String> {
-                std::thread::sleep(std::time::Duration::from_secs(15));
+                std::thread::sleep(std::time::Duration::from_secs(7));
                 cancellation_token.cancel();
                 Ok(())
             }

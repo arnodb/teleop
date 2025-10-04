@@ -14,7 +14,7 @@ trap cleanup EXIT
 
 cargo run --example server &
 
-sleep 3
+sleep 2
 
 PID=$(cat "$PID_FILE")
 
