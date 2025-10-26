@@ -13,7 +13,7 @@ use std::{fs::File, future::Future, os::unix::net::SocketAddr, path::PathBuf, ti
 
 use async_signal::{Signal, Signals};
 use async_stream::try_stream;
-use futures::{FutureExt, Stream, StreamExt};
+use futures::{Stream, StreamExt};
 use nix::{
     sys::signal::{kill, Signal::SIGQUIT},
     unistd::Pid,
@@ -23,30 +23,24 @@ use smol::{
     Timer,
 };
 
-use crate::cancellation::CancellationToken;
-
 /// Starts listening for attach signals and return incoming connections as a async `Stream`.
 ///
-/// The listening process can be interrupted by cancelling the passed cancellation token.
-pub fn listen(
-    cancellation_token: CancellationToken,
-) -> impl Stream<Item = Result<(UnixStream, SocketAddr), Box<dyn std::error::Error>>> {
+/// In order to stop accepting connections, it is enough to stop polling the stream.
+pub fn listen() -> impl Stream<Item = Result<(UnixStream, SocketAddr), Box<dyn std::error::Error>>>
+{
     // It is important to keep this in the synchronous part in order to ensure the listening
     // process is ready to accept attachment requests even if the future is not awaited.
     //
     // Nevertheless, the error will only be raised if the future is awaited.
-    let signal_attached = await_attach_signal(cancellation_token.clone());
+    let signal_attached = await_attach_signal();
 
     try_stream! {
         signal_attached.await?;
 
-        if cancellation_token.is_cancelled() {
-            return;
-        }
-
         let listener = UnixListener::bind(socket_file_path(std::process::id()))?;
 
-        while let Some(conn) = await_connection(listener.clone(), cancellation_token.clone()).await? {
+        loop {
+            let conn = listener.accept().await?;
             yield conn;
         }
     }
@@ -54,11 +48,7 @@ pub fn listen(
 
 type AwaitAttachSignalResult = Result<(), Box<dyn std::error::Error>>;
 
-type AwaitConnectionResult = Result<Option<(UnixStream, SocketAddr)>, Box<dyn std::error::Error>>;
-
-fn await_attach_signal(
-    cancellation_token: CancellationToken,
-) -> impl Future<Output = AwaitAttachSignalResult> {
+fn await_attach_signal() -> impl Future<Output = AwaitAttachSignalResult> {
     // It is important to keep this in the synchronous part in order to ensure the listening
     // process is ready to accept attachment requests even if the future is not awaited.
     //
@@ -68,44 +58,18 @@ fn await_attach_signal(
     async move {
         let mut signals = signals?;
 
-        loop {
-            let mut signal = signals.next().fuse();
-            let mut cancelled = cancellation_token.cancelled().fuse();
-            futures::select! {
-                signal = signal => {
-                    if let Some(Ok(signal)) = signal {
-                        if signal == Signal::Quit {
-                            let attach_file_path = attach_file_path(std::process::id());
-                            if attach_file_path.exists(){
-                                break;
-                            }
-                        }
+        while let Some(signal) = signals.next().await {
+            if let Ok(signal) = signal {
+                if signal == Signal::Quit {
+                    let attach_file_path = attach_file_path(std::process::id());
+                    if attach_file_path.exists() {
+                        break;
                     }
-                }
-                () = cancelled => {
-                    break;
                 }
             }
         }
 
         Ok(())
-    }
-}
-
-async fn await_connection(
-    listener: UnixListener,
-    cancellation_token: CancellationToken,
-) -> AwaitConnectionResult {
-    let mut accept = Box::pin(listener.accept().fuse());
-    let mut cancelled = cancellation_token.cancelled().fuse();
-    futures::select! {
-        conn = accept => {
-            drop(accept);
-            Ok(Some(conn?))
-        }
-        () = cancelled => {
-            Ok(None)
-        }
     }
 }
 
@@ -194,10 +158,8 @@ mod tests {
         let server = || -> Result<(), Box<dyn std::error::Error>> {
             let mut exec = futures::executor::LocalPool::new();
 
-            let cancellation_token = CancellationToken::new();
-
             let res = exec.run_until(async {
-                let mut conn_stream = pin!(listen(cancellation_token.clone()));
+                let mut conn_stream = pin!(listen());
                 println!("server is listening");
                 sender.send(()).unwrap();
                 if let Some(stream) = conn_stream.next().await {

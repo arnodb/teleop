@@ -1,6 +1,6 @@
 use std::{pin::pin, sync::LazyLock};
 
-use futures::{task::LocalSpawnExt, AsyncReadExt, StreamExt};
+use futures::{task::LocalSpawnExt, AsyncReadExt, FutureExt, StreamExt};
 use teleop::{
     attach::unix_socket::listen,
     cancellation::CancellationToken,
@@ -39,18 +39,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             capnp_rpc::new_client::<teleop_capnp::teleop::Client, _>(server)
         });
 
-        let mut conn_stream = pin!(listen(cancellation_token.clone()));
-        while let Some(stream) = conn_stream.next().await {
-            let (stream, _addr) = stream?;
-            if let Err(e) = spawn.spawn_local({
-                let cancellation_token = cancellation_token.clone();
-                let client = client.client.hook.clone();
-                async move {
-                    let (input, output) = stream.split();
-                    run_server_connection(input, output, client, cancellation_token).await;
+        let mut conn_stream = pin!(listen());
+        loop {
+            futures::select! {
+                stream = conn_stream.next().fuse() => {
+                    if let Some(stream) = stream {
+                        let (stream, _addr) = stream?;
+                        if let Err(e) = spawn.spawn_local({
+                            let cancellation_token = cancellation_token.clone();
+                            let client = client.client.hook.clone();
+                            async move {
+                                let (input, output) = stream.split();
+                                run_server_connection(input, output, client, cancellation_token).await;
+                            }
+                        }) {
+                            eprintln!("Error while spawning connection handler: {e}");
+                        }
+                    } else {
+                        break;
+                    }
                 }
-            }) {
-                eprintln!("Error while spawning connection handler: {e}");
+                () = cancellation_token.cancelled().fuse() => {
+                    break;
+                }
             }
         }
 
