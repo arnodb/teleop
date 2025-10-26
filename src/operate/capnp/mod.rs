@@ -19,10 +19,8 @@ use capnp::{
 use capnp_rpc::{pry, rpc_twoparty_capnp, twoparty, RpcSystem};
 use futures::{
     io::{BufReader, BufWriter},
-    AsyncRead, AsyncWrite, FutureExt,
+    AsyncRead, AsyncWrite,
 };
-
-use crate::cancellation::CancellationToken;
 
 pub mod echo;
 
@@ -91,8 +89,8 @@ pub async fn run_server_connection<R, W>(
     input: R,
     output: W,
     client: Box<dyn ClientHook>,
-    cancellation_token: CancellationToken,
-) where
+) -> Result<(), capnp::Error>
+where
     R: AsyncRead + Unpin + 'static,
     W: AsyncWrite + Unpin + 'static,
 {
@@ -102,17 +100,9 @@ pub async fn run_server_connection<R, W>(
         rpc_twoparty_capnp::Side::Server,
         Default::default(),
     );
-    let mut rpc_system = RpcSystem::new(Box::new(network), Some(Client { hook: client })).fuse();
+    let rpc_system = RpcSystem::new(Box::new(network), Some(Client { hook: client }));
 
-    let mut cancelled = cancellation_token.cancelled().fuse();
-    futures::select! {
-        _ = rpc_system => {
-            eprintln!("Connection interrupted");
-        }
-        () = cancelled => {
-            eprintln!("Process interrupted");
-        }
-    }
+    rpc_system.await
 }
 
 /// Creates a RPC client connection.
@@ -167,19 +157,11 @@ mod tests {
 
             let mut exec = futures::executor::LocalPool::new();
 
-            let res = exec.run_until(async move {
-                let cancellation_token = CancellationToken::new();
-
-                run_server_connection(
-                    server_input,
-                    server_output,
-                    client.client.hook,
-                    cancellation_token,
-                )
-                .await;
-
-                Ok::<_, Box<dyn std::error::Error>>(())
-            });
+            let res = exec.run_until(run_server_connection(
+                server_input,
+                server_output,
+                client.client.hook,
+            ));
 
             exec.run();
 

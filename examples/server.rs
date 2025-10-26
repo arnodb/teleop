@@ -46,11 +46,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     if let Some(stream) = stream {
                         let (stream, _addr) = stream?;
                         if let Err(e) = spawn.spawn_local({
-                            let cancellation_token = cancellation_token.clone();
                             let client = client.client.hook.clone();
                             async move {
                                 let (input, output) = stream.split();
-                                run_server_connection(input, output, client, cancellation_token).await;
+                                match run_server_connection(input, output, client).await {
+                                    Ok(()) => {}
+                                    Err(err) => {
+                                        eprintln!("Error while running server connection: {err}");
+                                    }
+                                }
                             }
                         }) {
                             eprintln!("Error while spawning connection handler: {e}");
