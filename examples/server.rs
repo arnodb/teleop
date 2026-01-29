@@ -1,9 +1,13 @@
-use std::{pin::pin, sync::LazyLock};
+use std::{
+    pin::pin,
+    sync::LazyLock,
+    time::{Duration, Instant},
+};
 
-use futures::{task::LocalSpawnExt, AsyncReadExt, FutureExt, StreamExt};
+use futures::{task::LocalSpawnExt, AsyncReadExt, FutureExt};
+use smol::Timer;
 use teleop::{
     attach::unix_socket::listen,
-    cancellation::CancellationToken,
     operate::capnp::{
         echo::{echo_capnp, EchoServer},
         run_server_connection, teleop_capnp, TeleopServer,
@@ -22,16 +26,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let spawn = exec.spawner();
 
     let res = exec.run_until(async {
-        let cancellation_token = CancellationToken::new();
-
-        let join_main = std::thread::spawn({
-            let cancellation_token = cancellation_token.clone();
-            move || -> Result<(), String> {
-                std::thread::sleep(std::time::Duration::from_secs(7));
-                cancellation_token.cancel();
-                Ok(())
-            }
-        });
+        let mut server_main = Timer::after(Duration::from_secs(7))
+            .map(|_: Instant| ())
+            .fuse();
 
         let client = LazyLock::new(|| {
             let mut server = TeleopServer::new();
@@ -42,7 +39,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut conn_stream = pin!(listen());
         loop {
             futures::select! {
-                stream = conn_stream.next().fuse() => {
+                stream = futures::StreamExt::next(&mut conn_stream).fuse() => {
                     if let Some(stream) = stream {
                         let (stream, _addr) = stream?;
                         if let Err(e) = spawn.spawn_local({
@@ -63,15 +60,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         break;
                     }
                 }
-                () = cancellation_token.cancelled().fuse() => {
+                () = server_main => {
                     break;
                 }
             }
         }
-
-        join_main
-            .join()
-            .map_err(|_err| "Unable to join main thread".to_owned())??;
 
         Ok::<_, Box<dyn std::error::Error>>(())
     });
