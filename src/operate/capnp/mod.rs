@@ -82,8 +82,6 @@ impl teleop_capnp::teleop::Server for TeleopServer {
 /// The communication goes through the passed input and output.
 ///
 /// The Cap'n Proto main service is passed as an abstract `capnp` client.
-///
-/// The connection can be cancelled with the passed cancellation token.
 pub async fn run_server_connection<R, W>(
     input: R,
     output: W,
