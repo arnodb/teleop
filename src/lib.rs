@@ -31,5 +31,4 @@
 #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 pub mod attach;
-pub mod cancellation;
 pub mod operate;
