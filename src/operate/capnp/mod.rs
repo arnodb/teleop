@@ -12,11 +12,10 @@
 use std::{collections::BTreeMap, sync::LazyLock};
 
 use capnp::{
-    capability::{Client, FromClientHook, FromServer, Promise},
+    capability::{Client, FromClientHook, FromServer},
     private::capability::ClientHook,
-    Error,
 };
-use capnp_rpc::{pry, rpc_twoparty_capnp, twoparty, RpcSystem};
+use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 use futures::{
     io::{BufReader, BufWriter},
     AsyncRead, AsyncWrite,
@@ -59,21 +58,21 @@ impl TeleopServer {
 }
 
 impl teleop_capnp::teleop::Server for TeleopServer {
-    fn service(
-        &mut self,
+    async fn service(
+        self: capnp::capability::Rc<Self>,
         params: teleop_capnp::teleop::ServiceParams,
         mut results: teleop_capnp::teleop::ServiceResults,
-    ) -> Promise<(), Error> {
-        let name = pry!(pry!(pry!(params.get()).get_name()).to_str());
+    ) -> Result<(), capnp::Error> {
+        let name = params.get()?.get_name()?.to_str()?;
         let service = self.services.get(name);
         if let Some(service) = service {
             results
                 .get()
                 .init_service()
                 .set_as_capability((*service).clone());
-            Promise::ok(())
+            Ok(())
         } else {
-            Promise::err(Error::failed(format!("service {name} not found")))
+            Err(capnp::Error::failed(format!("service {name} not found")))
         }
     }
 }

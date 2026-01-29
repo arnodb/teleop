@@ -2,7 +2,7 @@
 name = "teleop"
 version = "0.2.0"
 edition = "2021"
-rust-version = "1.81.0"
+rust-version = "1.85.0"
 license-file = "LICENSE"
 description = "Teleoperate Rust Processes"
 documentation = "https://docs.rs/teleop"
@@ -12,8 +12,8 @@ readme = "README.md"
 [dependencies]
 async-signal = "0.2"
 async-stream = "0.3"
-capnp = "0.21"
-capnp-rpc = "0.21"
+capnp = "0.25"
+capnp-rpc = "0.25"
 futures = "0.3"
 smol = "2"
 
@@ -21,7 +21,7 @@ smol = "2"
 nix = { version = "0.30", features = ["signal"] }
 
 [build-dependencies]
-capnpc = "0.21"
+capnpc = "0.25"
 
 [dev-dependencies]
 sluice = "0.6"
