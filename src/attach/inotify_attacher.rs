@@ -27,13 +27,16 @@ impl Attacher for InotifyAttacher {
         inotify.watches().add(parent, WatchMask::CREATE)?;
         let mut async_inotify = Async::new(inotify)?;
         let mut buffer = [0u8; 1024];
+        // Detect creation before listening to inotify
+        if std::fs::exists(&attach_file_path)? {
+            return Ok(());
+        }
         loop {
             let read = |inner: &mut Inotify| {
                 let events = inner.read_events(&mut buffer)?;
                 for event in events {
                     if let Some(name) = event.name {
                         if name == file_name {
-                            println!("File detected!");
                             return Ok(true);
                         }
                     }
