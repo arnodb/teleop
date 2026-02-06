@@ -9,7 +9,7 @@
 //!
 //! [`connect`] is the function to call in the client to initiate the teleoperation communication.
 
-use std::{fs::File, future::Future, os::unix::net::SocketAddr, path::PathBuf, time::Duration};
+use std::{future::Future, os::unix::net::SocketAddr, path::PathBuf, time::Duration};
 
 use async_signal::{Signal, Signals};
 use async_stream::try_stream;
@@ -22,6 +22,8 @@ use smol::{
     net::unix::{UnixListener, UnixStream},
     Timer,
 };
+
+use crate::internal::AutoDropFile;
 
 /// Starts listening for attach signals and return incoming connections as a async `Stream`.
 ///
@@ -119,23 +121,6 @@ fn socket_file_path(pid: u32) -> PathBuf {
     let mut path = std::env::temp_dir();
     path.push(format!(".teleop_pid_{pid}"));
     path
-}
-
-struct AutoDropFile(PathBuf);
-
-impl AutoDropFile {
-    pub fn create(path: PathBuf) -> std::io::Result<Self> {
-        File::create(&path)?;
-        Ok(Self(path))
-    }
-}
-
-impl Drop for AutoDropFile {
-    fn drop(&mut self) {
-        if self.0.exists() {
-            std::fs::remove_file(&self.0).unwrap();
-        }
-    }
 }
 
 #[cfg(test)]
