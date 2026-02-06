@@ -5,7 +5,7 @@
 //!
 //! * on linux, see [inotify_attacher](`crate::attach::inotify_attacher`) instead (feature `inotify`)
 
-use std::{future::Future, path::PathBuf};
+use std::future::Future;
 
 use async_signal::{Signal, Signals};
 use futures::StreamExt;
@@ -16,7 +16,7 @@ use nix::{
 
 use crate::{
     attach::{Attacher, AttacherSignal},
-    internal::AutoDropFile,
+    internal::{attach_file_path, AutoDropFile},
 };
 
 pub struct UnixAttacher;
@@ -41,7 +41,7 @@ impl Attacher for UnixAttacher {
             while let Some(signal) = signals.next().await {
                 if let Ok(signal) = signal {
                     if signal == Signal::Quit {
-                        let attach_file_path = attach_file_path(std::process::id());
+                        let attach_file_path = attach_file_path(std::process::id())?;
                         if attach_file_path.exists() {
                             break;
                         }
@@ -69,18 +69,9 @@ impl AttacherSignal for UnixAttacherSignal {
             .transpose()?
             .is_none_or(|exists| !exists)
         {
-            self.file = Some(AutoDropFile::create(attach_file_path(self.pid))?);
+            self.file = Some(AutoDropFile::create(attach_file_path(self.pid)?)?);
         }
         kill(Pid::from_raw(self.pid as _), SIGQUIT)?;
         Ok(())
     }
-}
-
-fn attach_file_path(pid: u32) -> PathBuf {
-    let mut path = PathBuf::new();
-    path.push("/proc");
-    path.push(pid.to_string());
-    path.push("cwd");
-    path.push(format!(".teleop_attach_{pid}"));
-    path
 }

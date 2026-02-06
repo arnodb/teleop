@@ -1,13 +1,13 @@
 //! Inotify attacher which creates a file in the process working directory and waits for process to detect it.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use inotify::{Inotify, WatchMask};
 use smol::Async;
 
 use crate::{
     attach::{Attacher, AttacherSignal},
-    internal::AutoDropFile,
+    internal::{attach_file_path, AutoDropFile},
 };
 
 pub struct InotifyAttacher;
@@ -20,7 +20,7 @@ impl Attacher for InotifyAttacher {
     }
 
     async fn signaled() -> Result<(), Box<dyn std::error::Error>> {
-        let attach_file_path = attach_file_path(std::process::id());
+        let attach_file_path = attach_file_path(std::process::id())?;
         let parent = attach_file_path.parent().unwrap_or_else(|| Path::new("."));
         let file_name = attach_file_path.file_name().unwrap();
         let inotify = Inotify::init()?;
@@ -63,17 +63,8 @@ impl AttacherSignal for InotifyAttacherSignal {
             .transpose()?
             .is_none_or(|exists| !exists)
         {
-            self.file = Some(AutoDropFile::create(attach_file_path(self.pid))?);
+            self.file = Some(AutoDropFile::create(attach_file_path(self.pid)?)?);
         }
         Ok(())
     }
-}
-
-fn attach_file_path(pid: u32) -> PathBuf {
-    let mut path = PathBuf::new();
-    path.push("/proc");
-    path.push(pid.to_string());
-    path.push("cwd");
-    path.push(format!(".teleop_attach_{pid}"));
-    path
 }
