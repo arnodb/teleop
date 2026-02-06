@@ -9,11 +9,10 @@
 //!
 //! [`connect`] is the function to call in the client to initiate the teleoperation communication.
 
-use std::{future::Future, os::unix::net::SocketAddr, path::PathBuf, time::Duration};
+use std::{os::unix::net::SocketAddr, path::PathBuf, time::Duration};
 
-use async_signal::{Signal, Signals};
 use async_stream::try_stream;
-use futures::{Stream, StreamExt};
+use futures::Stream;
 use nix::{
     sys::signal::{kill, Signal::SIGQUIT},
     unistd::Pid,
@@ -23,21 +22,25 @@ use smol::{
     Timer,
 };
 
-use crate::internal::AutoDropFile;
+use crate::attach::Attacher;
 
 /// Starts listening for attach signals and return incoming connections as a async `Stream`.
 ///
 /// In order to stop accepting connections, it is enough to stop polling the stream.
-pub fn listen() -> impl Stream<Item = Result<(UnixStream, SocketAddr), Box<dyn std::error::Error>>>
+pub fn listen<A>(
+) -> impl Stream<Item = Result<(UnixStream, SocketAddr), Box<dyn std::error::Error>>>
+where
+    A: Attacher,
 {
     // It is important to keep this in the synchronous part in order to ensure the listening
     // process is ready to accept attachment requests even if the future is not awaited.
     //
     // Nevertheless, the error will only be raised if the future is awaited.
-    let signal_attached = await_attach_signal();
+    let attached = A::await_signal();
 
     try_stream! {
-        signal_attached.await?;
+
+        attached.await?;
 
         let listener = UnixListener::bind(socket_file_path(std::process::id()))?;
 
@@ -48,41 +51,17 @@ pub fn listen() -> impl Stream<Item = Result<(UnixStream, SocketAddr), Box<dyn s
     }
 }
 
-type AwaitAttachSignalResult = Result<(), Box<dyn std::error::Error>>;
-
-fn await_attach_signal() -> impl Future<Output = AwaitAttachSignalResult> {
-    // It is important to keep this in the synchronous part in order to ensure the listening
-    // process is ready to accept attachment requests even if the future is not awaited.
-    //
-    // Nevertheless, the error will only be raised if the future is awaited.
-    let signals = Signals::new([Signal::Quit]);
-
-    async move {
-        let mut signals = signals?;
-
-        while let Some(signal) = signals.next().await {
-            if let Ok(signal) = signal {
-                if signal == Signal::Quit {
-                    let attach_file_path = attach_file_path(std::process::id());
-                    if attach_file_path.exists() {
-                        break;
-                    }
-                }
-            }
-        }
-
-        Ok(())
-    }
-}
-
 /// Connects to a process identified by its ID.
 ///
 /// Returns the opened socket on success.
-pub async fn connect(pid: u32) -> Result<UnixStream, Box<dyn std::error::Error>> {
+pub async fn connect<A>(pid: u32) -> Result<UnixStream, Box<dyn std::error::Error>>
+where
+    A: Attacher,
+{
     let socket_file_path = socket_file_path(pid);
 
     if !socket_file_path.exists() {
-        let _attach_file: AutoDropFile = AutoDropFile::create(attach_file_path(pid))?;
+        let _guard = A::send_signal(pid).await?;
 
         kill(Pid::from_raw(pid as _), SIGQUIT)?;
 
@@ -108,15 +87,6 @@ pub async fn connect(pid: u32) -> Result<UnixStream, Box<dyn std::error::Error>>
     Ok(UnixStream::connect(socket_file_path).await?)
 }
 
-fn attach_file_path(pid: u32) -> PathBuf {
-    let mut path = PathBuf::new();
-    path.push("/proc");
-    path.push(pid.to_string());
-    path.push("cwd");
-    path.push(format!(".teleop_attach_{pid}"));
-    path
-}
-
 fn socket_file_path(pid: u32) -> PathBuf {
     let mut path = std::env::temp_dir();
     path.push(format!(".teleop_pid_{pid}"));
@@ -134,6 +104,8 @@ mod tests {
         AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, StreamExt,
     };
 
+    use crate::attach::unix_attacher::UnixAttacher;
+
     use super::*;
 
     #[test]
@@ -144,7 +116,7 @@ mod tests {
             let mut exec = futures::executor::LocalPool::new();
 
             let res = exec.run_until(async {
-                let mut conn_stream = pin!(listen());
+                let mut conn_stream = pin!(listen::<UnixAttacher>());
                 println!("server is listening");
                 sender.send(()).unwrap();
                 if let Some(stream) = conn_stream.next().await {
@@ -182,7 +154,7 @@ mod tests {
             let res = exec.run_until(async move {
                 let () = receiver.await?;
                 println!("client is initiating connection");
-                let stream = connect(pid).await?;
+                let stream = connect::<UnixAttacher>(pid).await?;
                 let (input, output) = stream.split();
                 let mut input = BufReader::new(input);
                 let mut output = BufWriter::new(output);

@@ -2,7 +2,7 @@ use std::env::args;
 
 use futures::{task::LocalSpawnExt, AsyncReadExt};
 use teleop::{
-    attach::unix_socket::connect,
+    attach::{unix_attacher::UnixAttacher, unix_socket::connect},
     operate::capnp::{client_connection, echo::echo_capnp},
 };
 
@@ -18,7 +18,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let spawn = exec.spawner();
 
     let res = exec.run_until(async move {
-        let stream = connect(pid).await?;
+        let stream = connect::<UnixAttacher>(pid).await?;
         let (input, output) = stream.split();
         let (rpc_system, teleop) = client_connection(input, output).await;
         let rpc_disconnect = rpc_system.get_disconnector();

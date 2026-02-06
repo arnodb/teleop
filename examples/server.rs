@@ -7,7 +7,7 @@ use std::{
 use futures::{task::LocalSpawnExt, AsyncReadExt, FutureExt};
 use smol::Timer;
 use teleop::{
-    attach::unix_socket::listen,
+    attach::{unix_attacher::UnixAttacher, unix_socket::listen},
     operate::capnp::{
         echo::{echo_capnp, EchoServer},
         run_server_connection, teleop_capnp, TeleopServer,
@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             capnp_rpc::new_client::<teleop_capnp::teleop::Client, _>(server)
         });
 
-        let mut conn_stream = pin!(listen());
+        let mut conn_stream = pin!(listen::<UnixAttacher>());
         loop {
             futures::select! {
                 stream = futures::StreamExt::next(&mut conn_stream).fuse() => {
