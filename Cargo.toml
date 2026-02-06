@@ -9,12 +9,16 @@ documentation = "https://docs.rs/teleop"
 repository = "https://github.com/arnodb/teleop"
 readme = "README.md"
 
+[features]
+default = []
+
 [dependencies]
 async-signal = "0.2"
 async-stream = "0.3"
 capnp = "0.25"
 capnp-rpc = "0.25"
 futures = "0.3"
+inotify = { version = "0.11", optional = true }
 smol = "2"
 
 [target.'cfg(unix)'.dependencies]

@@ -7,6 +7,8 @@ use std::future::Future;
 #[cfg(any(unix, doc))]
 pub mod unix_socket;
 
+#[cfg(feature = "inotify")]
+pub mod inotify_attacher;
 #[cfg(any(unix, doc))]
 pub mod unix_attacher;
 
@@ -24,5 +26,7 @@ pub trait AttacherSignal {
 
 // Decide which attacher is the default
 
-#[cfg(any(unix, doc))]
+#[cfg(feature = "inotify")]
+pub use inotify_attacher::InotifyAttacher as DefaultAttacher;
+#[cfg(all(unix, not(feature = "inotify")))]
 pub use unix_attacher::UnixAttacher as DefaultAttacher;

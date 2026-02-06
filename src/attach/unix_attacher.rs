@@ -1,3 +1,10 @@
+//! Unix attacher which creates a file in the process working directory and sends a `QUIT` signal
+//! to the process.
+//!
+//! In this post-2025, there is no need to use this:
+//!
+//! * on linux, see [inotify_attacher](`crate::attach::inotify_attacher`) instead (feature `inotify`)
+
 use std::{future::Future, path::PathBuf};
 
 use async_signal::{Signal, Signals};
