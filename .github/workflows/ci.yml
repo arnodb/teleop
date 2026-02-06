@@ -15,6 +15,13 @@ jobs:
       with_clippy: true
       with_audit: true
 
+  main_stable_no_default_features:
+    name: Rust stable
+    uses: ./.github/workflows/_build.yml
+    with:
+      rust_toolchain: stable
+      rust_features: --no-default-features
+
   main_1_85_0:
     name: Rust 1.85.0
     uses: ./.github/workflows/_build.yml
