@@ -13,16 +13,12 @@ use std::{os::unix::net::SocketAddr, path::PathBuf, time::Duration};
 
 use async_stream::try_stream;
 use futures::Stream;
-use nix::{
-    sys::signal::{kill, Signal::SIGQUIT},
-    unistd::Pid,
-};
 use smol::{
     net::unix::{UnixListener, UnixStream},
     Timer,
 };
 
-use crate::attach::Attacher;
+use crate::attach::{Attacher, AttacherSignal};
 
 /// Starts listening for attach signals and return incoming connections as a async `Stream`.
 ///
@@ -36,11 +32,11 @@ where
     // process is ready to accept attachment requests even if the future is not awaited.
     //
     // Nevertheless, the error will only be raised if the future is awaited.
-    let attached = A::await_signal();
+    let signaled = A::signaled();
 
     try_stream! {
 
-        attached.await?;
+        signaled.await?;
 
         let listener = UnixListener::bind(socket_file_path(std::process::id()))?;
 
@@ -61,16 +57,16 @@ where
     let socket_file_path = socket_file_path(pid);
 
     if !socket_file_path.exists() {
-        let _guard = A::send_signal(pid).await?;
+        let signal = A::signal(pid)?;
 
-        kill(Pid::from_raw(pid as _), SIGQUIT)?;
+        signal.send().await?;
 
         let mut attempts = 1;
 
         while !socket_file_path.exists() && attempts < 100 {
             Timer::after(Duration::from_millis(100)).await;
 
-            kill(Pid::from_raw(pid as _), SIGQUIT)?;
+            signal.send().await?;
 
             attempts += 1;
         }

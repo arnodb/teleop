@@ -11,11 +11,15 @@ pub mod unix_socket;
 pub mod unix_attacher;
 
 pub trait Attacher {
-    type SignalGuard;
+    type Signal: AttacherSignal;
 
-    fn send_signal(
-        pid: u32,
-    ) -> impl Future<Output = Result<Self::SignalGuard, Box<dyn std::error::Error>>>;
+    fn signal(pid: u32) -> Result<Self::Signal, Box<dyn std::error::Error>>;
 
-    fn await_signal() -> impl Future<Output = Result<(), Box<dyn std::error::Error>>>;
+    fn signaled() -> impl Future<Output = Result<(), Box<dyn std::error::Error>>>;
 }
+
+pub trait AttacherSignal {
+    fn send(&self) -> impl Future<Output = Result<(), Box<dyn std::error::Error>>>;
+}
+
+// Decide which attacher is the default

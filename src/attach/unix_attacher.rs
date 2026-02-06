@@ -2,20 +2,29 @@ use std::{future::Future, path::PathBuf};
 
 use async_signal::{Signal, Signals};
 use futures::StreamExt;
+use nix::{
+    sys::signal::{kill, Signal::SIGQUIT},
+    unistd::Pid,
+};
 
-use crate::{attach::Attacher, internal::AutoDropFile};
+use crate::{
+    attach::{Attacher, AttacherSignal},
+    internal::AutoDropFile,
+};
 
 pub struct UnixAttacher;
 
 impl Attacher for UnixAttacher {
-    type SignalGuard = AutoDropFile;
+    type Signal = UnixAttacherSignal;
 
-    async fn send_signal(pid: u32) -> Result<Self::SignalGuard, Box<dyn std::error::Error>> {
-        let attach_file: AutoDropFile = AutoDropFile::create(attach_file_path(pid))?;
-        Ok(attach_file)
+    fn signal(pid: u32) -> Result<Self::Signal, Box<dyn std::error::Error>> {
+        Ok(UnixAttacherSignal {
+            pid,
+            _file: AutoDropFile::create(attach_file_path(pid))?,
+        })
     }
 
-    fn await_signal() -> impl Future<Output = Result<(), Box<dyn std::error::Error>>> {
+    fn signaled() -> impl Future<Output = Result<(), Box<dyn std::error::Error>>> {
         // It is important to keep this in the synchronous part in order to ensure the listening
         // process is ready to accept attachment requests even if the future is not awaited.
         //
@@ -38,6 +47,18 @@ impl Attacher for UnixAttacher {
 
             Ok(())
         }
+    }
+}
+
+pub struct UnixAttacherSignal {
+    pid: u32,
+    _file: AutoDropFile,
+}
+
+impl AttacherSignal for UnixAttacherSignal {
+    async fn send(&self) -> Result<(), Box<dyn std::error::Error>> {
+        kill(Pid::from_raw(self.pid as _), SIGQUIT)?;
+        Ok(())
     }
 }
 
