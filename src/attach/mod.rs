@@ -19,7 +19,7 @@ pub trait Attacher {
 }
 
 pub trait AttacherSignal {
-    fn send(&self) -> impl Future<Output = Result<(), Box<dyn std::error::Error>>>;
+    fn send(&mut self) -> impl Future<Output = Result<(), Box<dyn std::error::Error>>>;
 }
 
 // Decide which attacher is the default

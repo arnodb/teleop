@@ -7,6 +7,10 @@ impl AutoDropFile {
         File::create(&path)?;
         Ok(Self(path))
     }
+
+    pub fn exists(&self) -> Result<bool, std::io::Error> {
+        std::fs::exists(&self.0)
+    }
 }
 
 impl Drop for AutoDropFile {

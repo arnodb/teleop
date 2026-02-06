@@ -57,7 +57,7 @@ where
     let socket_file_path = socket_file_path(pid);
 
     if !socket_file_path.exists() {
-        let signal = A::signal(pid)?;
+        let mut signal = A::signal(pid)?;
 
         signal.send().await?;
 

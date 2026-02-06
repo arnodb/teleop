@@ -18,10 +18,7 @@ impl Attacher for UnixAttacher {
     type Signal = UnixAttacherSignal;
 
     fn signal(pid: u32) -> Result<Self::Signal, Box<dyn std::error::Error>> {
-        Ok(UnixAttacherSignal {
-            pid,
-            _file: AutoDropFile::create(attach_file_path(pid))?,
-        })
+        Ok(UnixAttacherSignal { pid, file: None })
     }
 
     fn signaled() -> impl Future<Output = Result<(), Box<dyn std::error::Error>>> {
@@ -52,11 +49,21 @@ impl Attacher for UnixAttacher {
 
 pub struct UnixAttacherSignal {
     pid: u32,
-    _file: AutoDropFile,
+    file: Option<AutoDropFile>,
 }
 
 impl AttacherSignal for UnixAttacherSignal {
-    async fn send(&self) -> Result<(), Box<dyn std::error::Error>> {
+    async fn send(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        // Recreate the file if necessary
+        if self
+            .file
+            .as_ref()
+            .map(|file| file.exists())
+            .transpose()?
+            .is_none_or(|exists| !exists)
+        {
+            self.file = Some(AutoDropFile::create(attach_file_path(self.pid))?);
+        }
         kill(Pid::from_raw(self.pid as _), SIGQUIT)?;
         Ok(())
     }
