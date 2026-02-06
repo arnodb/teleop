@@ -100,9 +100,8 @@ mod tests {
         AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, StreamExt,
     };
 
-    use crate::attach::unix_attacher::UnixAttacher;
-
     use super::*;
+    use crate::attach::DefaultAttacher;
 
     #[test]
     fn test_unix_socket_attachment() {
@@ -112,7 +111,7 @@ mod tests {
             let mut exec = futures::executor::LocalPool::new();
 
             let res = exec.run_until(async {
-                let mut conn_stream = pin!(listen::<UnixAttacher>());
+                let mut conn_stream = pin!(listen::<DefaultAttacher>());
                 println!("server is listening");
                 sender.send(()).unwrap();
                 if let Some(stream) = conn_stream.next().await {
@@ -150,7 +149,7 @@ mod tests {
             let res = exec.run_until(async move {
                 let () = receiver.await?;
                 println!("client is initiating connection");
-                let stream = connect::<UnixAttacher>(pid).await?;
+                let stream = connect::<DefaultAttacher>(pid).await?;
                 let (input, output) = stream.split();
                 let mut input = BufReader::new(input);
                 let mut output = BufWriter::new(output);

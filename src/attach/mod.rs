@@ -23,3 +23,6 @@ pub trait AttacherSignal {
 }
 
 // Decide which attacher is the default
+
+#[cfg(any(unix, doc))]
+pub use unix_attacher::UnixAttacher as DefaultAttacher;
