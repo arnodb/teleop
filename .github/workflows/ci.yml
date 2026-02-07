@@ -35,3 +35,10 @@ jobs:
     with:
       rust_toolchain: nightly
 
+  main_stable_windows:
+    name: Rust Windows stable
+    uses: ./.github/workflows/_build_windows.yml
+    with:
+      rust_toolchain: stable
+      rust_features: --no-default-features
+      with_audit: true
