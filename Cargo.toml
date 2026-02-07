@@ -25,6 +25,9 @@ sysinfo = "0.38"
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.31", features = ["signal"] }
 
+[target.'cfg(windows)'.dependencies]
+uds_windows = { version = "1" }
+
 [build-dependencies]
 capnpc = "0.25"
 

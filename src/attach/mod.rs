@@ -6,6 +6,8 @@ use std::future::Future;
 
 #[cfg(unix)]
 pub mod unix_socket;
+#[cfg(windows)]
+pub mod windows_unix_socket;
 
 pub mod dummy_attacher;
 #[cfg(feature = "inotify")]
