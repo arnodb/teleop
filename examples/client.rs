@@ -1,12 +1,18 @@
-use std::env::args;
-
-use futures::{task::LocalSpawnExt, AsyncReadExt};
-use teleop::{
-    attach::{unix_socket::connect, DefaultAttacher},
-    operate::capnp::{client_connection, echo::echo_capnp},
-};
-
+#[cfg(not(unix))]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    Ok(())
+}
+
+#[cfg(unix)]
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use std::env::args;
+
+    use futures::{task::LocalSpawnExt, AsyncReadExt};
+    use teleop::{
+        attach::{unix_socket::connect, DefaultAttacher},
+        operate::capnp::{client_connection, echo::echo_capnp},
+    };
+
     let mut args = args();
     args.next();
     let pid: u32 = args

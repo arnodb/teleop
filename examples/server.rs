@@ -1,20 +1,26 @@
-use std::{
-    pin::pin,
-    sync::LazyLock,
-    time::{Duration, Instant},
-};
-
-use futures::{task::LocalSpawnExt, AsyncReadExt, FutureExt};
-use smol::Timer;
-use teleop::{
-    attach::{unix_socket::listen, DefaultAttacher},
-    operate::capnp::{
-        echo::{echo_capnp, EchoServer},
-        run_server_connection, teleop_capnp, TeleopServer,
-    },
-};
-
+#[cfg(not(unix))]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    Ok(())
+}
+
+#[cfg(unix)]
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use std::{
+        pin::pin,
+        sync::LazyLock,
+        time::{Duration, Instant},
+    };
+
+    use futures::{task::LocalSpawnExt, AsyncReadExt, FutureExt};
+    use smol::Timer;
+    use teleop::{
+        attach::{unix_socket::listen, DefaultAttacher},
+        operate::capnp::{
+            echo::{echo_capnp, EchoServer},
+            run_server_connection, teleop_capnp, TeleopServer,
+        },
+    };
+
     let pid = std::process::id();
     println!("PID: {pid}");
     if let Ok(pid_file) = std::env::var("PID_FILE") {
