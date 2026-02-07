@@ -22,6 +22,8 @@ check_all:
     cargo clippy --all-features --all-targets -- -D warnings
     cargo build --all-features
     cargo test --all-features
+    cargo build --no-default-features
+    cargo test --no-default-features
 
     just msrv
     cargo build --all-features
