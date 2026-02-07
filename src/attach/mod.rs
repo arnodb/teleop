@@ -4,13 +4,13 @@
 
 use std::future::Future;
 
-#[cfg(any(unix, doc))]
+#[cfg(unix)]
 pub mod unix_socket;
 
 pub mod dummy_attacher;
 #[cfg(feature = "inotify")]
 pub mod inotify_attacher;
-#[cfg(any(unix, doc))]
+#[cfg(unix)]
 pub mod unix_attacher;
 
 pub trait Attacher {
