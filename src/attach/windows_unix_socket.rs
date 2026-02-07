@@ -16,11 +16,15 @@ use std::{
         prelude::{AsSocket, BorrowedSocket},
     },
     path::PathBuf,
+    pin::Pin,
     time::Duration,
 };
 
 use async_stream::try_stream;
-use futures::Stream;
+use futures::{
+    task::{Context, Poll},
+    AsyncRead, AsyncWrite, Stream,
+};
 use smol::{Async, Timer};
 use uds_windows::{SocketAddr, UnixListener, UnixStream};
 
@@ -44,11 +48,35 @@ impl AsSocket for UdsListenerWrapper {
 
 pub struct UdsStream(Async<UnixStream>);
 
-impl Deref for UdsStream {
-    type Target = Async<UnixStream>;
+impl AsyncRead for UdsStream {
+    fn poll_read(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut [u8],
+    ) -> Poll<Result<usize, std::io::Error>> {
+        let pinned = std::pin::pin!(&self.0);
+        pinned.poll_read(cx, buf)
+    }
+}
 
-    fn deref(&self) -> &Async<UnixStream> {
-        &self.0
+impl AsyncWrite for UdsStream {
+    fn poll_write(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<Result<usize, std::io::Error>> {
+        let pinned = std::pin::pin!(&self.0);
+        pinned.poll_write(cx, buf)
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), std::io::Error>> {
+        let pinned = std::pin::pin!(&self.0);
+        pinned.poll_flush(cx)
+    }
+
+    fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), std::io::Error>> {
+        let pinned = std::pin::pin!(&self.0);
+        pinned.poll_close(cx)
     }
 }
 
