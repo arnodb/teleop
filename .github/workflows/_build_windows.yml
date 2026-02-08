@@ -93,5 +93,5 @@ jobs:
       - id: examples
         name: Check examples
         run: |
-          ./scripts/check_examples.sh
+          ./scripts/check_examples.ps1
 
