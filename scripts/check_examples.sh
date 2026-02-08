@@ -2,7 +2,7 @@
 
 set -eu
 
-cargo build
+cargo build --examples
 
 export PID_FILE=$(mktemp)
 
