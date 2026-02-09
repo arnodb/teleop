@@ -12,6 +12,8 @@ pub mod windows_unix_socket;
 pub mod dummy_attacher;
 #[cfg(feature = "inotify")]
 pub mod inotify_attacher;
+#[cfg(target_os = "macos")]
+pub mod kqueue_attacher;
 #[cfg(unix)]
 pub mod unix_attacher;
 
@@ -33,5 +35,7 @@ pub trait AttacherSignal {
 pub use dummy_attacher::DummyAttacher as DefaultAttacher;
 #[cfg(feature = "inotify")]
 pub use inotify_attacher::InotifyAttacher as DefaultAttacher;
-#[cfg(all(unix, not(feature = "inotify")))]
+#[cfg(target_os = "macos")]
+pub use kqueue_attacher::KqueueAttacher as DefaultAttacher;
+#[cfg(all(unix, not(target_os = "macos"), not(feature = "inotify")))]
 pub use unix_attacher::UnixAttacher as DefaultAttacher;
