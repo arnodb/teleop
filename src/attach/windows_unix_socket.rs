@@ -20,12 +20,12 @@ use std::{
     time::Duration,
 };
 
+use async_io::{Async, Timer};
 use async_stream::try_stream;
 use futures::{
     task::{Context, Poll},
     AsyncRead, AsyncWrite, Stream,
 };
-use smol::{Async, Timer};
 use uds_windows::{SocketAddr, UnixListener, UnixStream};
 
 use crate::attach::{Attacher, AttacherSignal};

@@ -11,12 +11,10 @@
 
 use std::{os::unix::net::SocketAddr, path::PathBuf, time::Duration};
 
+use async_io::Timer;
+use async_net::unix::{UnixListener, UnixStream};
 use async_stream::try_stream;
 use futures::Stream;
-use smol::{
-    net::unix::{UnixListener, UnixStream},
-    Timer,
-};
 
 use crate::attach::{Attacher, AttacherSignal};
 

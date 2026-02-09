@@ -2,8 +2,8 @@
 
 use std::path::Path;
 
+use async_io::Async;
 use inotify::{Inotify, WatchMask};
-use smol::Async;
 
 use crate::{
     attach::{Attacher, AttacherSignal},

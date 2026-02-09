@@ -13,13 +13,14 @@ readme = "README.md"
 default = []
 
 [dependencies]
+async-io = "2"
+async-net = "2"
 async-signal = "0.2"
 async-stream = "0.3"
 capnp = "0.25"
 capnp-rpc = "0.25"
 futures = "0.3"
 inotify = { version = "0.11", optional = true }
-smol = "2"
 sysinfo = "0.38"
 
 [target.'cfg(unix)'.dependencies]

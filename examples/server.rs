@@ -6,8 +6,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         time::{Duration, Instant},
     };
 
+    use async_io::Timer;
     use futures::{task::LocalSpawnExt, AsyncReadExt, FutureExt};
-    use smol::Timer;
     use teleop::{
         attach::{unix_socket::listen, DefaultAttacher},
         operate::capnp::{
@@ -85,8 +85,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         time::{Duration, Instant},
     };
 
+    use async_io::Timer;
     use futures::{task::LocalSpawnExt, AsyncReadExt, FutureExt};
-    use smol::Timer;
     use teleop::{
         attach::{windows_unix_socket::listen, DefaultAttacher},
         operate::capnp::{
