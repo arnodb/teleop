@@ -77,7 +77,7 @@ jobs:
         run: |
           cargo quickinstall cargo-audit
           cargo audit
-          echo "Audit OK" >> "$GITHUB_STEP_SUMMARY"
+          "Audit OK" >> $env:GITHUB_STEP_SUMMARY
 
       - id: clippy
         name: Clippy
