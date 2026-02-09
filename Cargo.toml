@@ -26,6 +26,9 @@ sysinfo = "0.38"
 [target.'cfg(unix)'.dependencies]
 nix = { version = "0.31", features = ["signal"] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+kqueue = { version = "1" }
+
 [target.'cfg(windows)'.dependencies]
 uds_windows = { version = "1" }
 

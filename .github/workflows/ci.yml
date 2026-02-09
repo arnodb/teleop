@@ -42,3 +42,11 @@ jobs:
       rust_toolchain: stable
       rust_features: --no-default-features
       with_audit: true
+
+  main_stable_macos:
+    name: Rust MacOS stable
+    uses: ./.github/workflows/_build_macos.yml
+    with:
+      rust_toolchain: stable
+      rust_features: --no-default-features
+      with_audit: true
