@@ -37,7 +37,7 @@ mod tests {
     use crate::attach::{Attacher, AttacherSignal};
 
     #[test]
-    fn test_inotify_attacher() {
+    fn test_dummy_attacher() {
         let mut exec = futures::executor::LocalPool::new();
 
         let res = exec.run_until(or(

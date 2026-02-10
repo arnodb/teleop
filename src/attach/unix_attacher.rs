@@ -83,7 +83,7 @@ mod tests {
     use crate::attach::tests::test_attacher;
 
     #[test]
-    fn test_inotify_attacher() {
-        test_attacher::<UnixAttacher>();
+    fn test_unix_attacher() {
+        test_attacher::<UnixAttacher, _>(async {});
     }
 }

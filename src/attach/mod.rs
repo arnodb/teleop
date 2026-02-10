@@ -43,7 +43,11 @@ pub use unix_attacher::UnixAttacher as DefaultAttacher;
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
-    use std::{pin::pin, time::Duration};
+    use std::{
+        future::Future,
+        pin::pin,
+        time::{Duration, Instant},
+    };
 
     use async_io::Timer;
     use futures::{select, FutureExt};
@@ -55,9 +59,10 @@ mod tests {
     // The attacher tests need to run separately
     pub(crate) static ATTACHER_TEST_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
-    pub(crate) fn test_attacher<A>()
+    pub(crate) fn test_attacher<A, W>(wrong_signal: W)
     where
         A: Attacher,
+        W: Future<Output = ()>,
     {
         let _attacher_test = ATTACHER_TEST_MUTEX.lock();
 
@@ -72,12 +77,22 @@ mod tests {
                 drop(signal);
 
                 let mut signaled = pin!(A::signaled().fuse());
+                let mut full_timer = Timer::at(Instant::now() + Duration::from_millis(500)).fuse();
+                select! {
+                    // Wait so that signaled is polled
+                    () = Timer::after(Duration::from_millis(10))
+                        .then(async |_| wrong_signal.await).fuse() => {}
+                    res = signaled => {
+                        res?;
+                        panic!("Should not be signaled yet (wrong signal)");
+                    }
+                };
                 select! {
                     res = signaled => {
                         res?;
                         panic!("Should not be signaled yet");
                     }
-                    _ = Timer::after(Duration::from_millis(500)).fuse() => ()
+                    _ = full_timer => {}
                 };
 
                 let mut signal = A::signal(std::process::id())?;

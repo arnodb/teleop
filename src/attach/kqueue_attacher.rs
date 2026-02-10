@@ -90,11 +90,27 @@ impl AttacherSignal for KqueueAttacherSignal {
 #[cfg(test)]
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
+    use std::time::Duration;
+
+    use async_io::Timer;
+
     use super::KqueueAttacher;
-    use crate::attach::tests::test_attacher;
+    use crate::{
+        attach::tests::test_attacher,
+        internal::{attach_file_path, AutoDropFile},
+    };
 
     #[test]
-    fn test_inotify_attacher() {
-        test_attacher::<KqueueAttacher>();
+    fn test_kqueue_attacher() {
+        test_attacher::<KqueueAttacher, _>(async {
+            // Create a wrong file
+            let mut wrong_attach_file_path = attach_file_path(std::process::id()).unwrap();
+            let mut wrong_file_name = wrong_attach_file_path.file_name().unwrap().to_os_string();
+            wrong_file_name.push("_wrong");
+            wrong_attach_file_path.set_file_name(wrong_file_name);
+            let _file = AutoDropFile::create(wrong_attach_file_path);
+            // Wait to make sure kqueue sees the file
+            Timer::after(Duration::from_millis(200)).await;
+        });
     }
 }
