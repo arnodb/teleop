@@ -34,7 +34,7 @@ mod tests {
     use futures_lite::future::or;
 
     use super::DummyAttacher;
-    use crate::attach::Attacher;
+    use crate::attach::{Attacher, AttacherSignal};
 
     #[test]
     fn test_inotify_attacher() {
@@ -43,6 +43,7 @@ mod tests {
         let res = exec.run_until(or(
             async {
                 DummyAttacher::signaled().await?;
+                DummyAttacher::signal(std::process::id())?.send().await?;
                 Ok::<_, Box<dyn std::error::Error>>(())
             },
             Timer::after(Duration::from_secs(5)).then(async |_| Err("Test timeout".into())),
