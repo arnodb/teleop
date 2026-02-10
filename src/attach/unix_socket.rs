@@ -70,11 +70,12 @@ where
         }
 
         if !socket_file_path.exists() {
-            panic!(
+            return Err(format!(
                 "Unable to open socket file {}: target process {} doesn't respond",
                 socket_file_path.to_string_lossy(),
                 pid
-            );
+            )
+            .into());
         }
     }
 
