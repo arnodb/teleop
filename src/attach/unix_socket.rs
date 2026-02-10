@@ -172,6 +172,8 @@ mod tests {
         };
 
         let s = std::thread::spawn(|| server().unwrap());
+        // Improve code coverage by letting the server avoid early returns
+        std::thread::sleep(Duration::from_secs(2));
         let c = std::thread::spawn(|| client().unwrap());
         c.join().unwrap();
         s.join().unwrap();
