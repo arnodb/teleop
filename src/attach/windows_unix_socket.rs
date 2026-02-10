@@ -166,10 +166,13 @@ mod tests {
     };
 
     use super::*;
-    use crate::attach::DefaultAttacher;
+    use crate::attach::{tests::ATTACHER_TEST_MUTEX, DefaultAttacher};
 
     #[test]
     fn test_unix_socket_attachment() {
+        // This test may conflict with attacher tests
+        let _attacher_test = ATTACHER_TEST_MUTEX.lock();
+
         let (sender, receiver) = oneshot::channel::<()>();
 
         let server = || -> Result<(), Box<dyn std::error::Error>> {
@@ -239,6 +242,8 @@ mod tests {
         };
 
         let s = std::thread::spawn(|| server().unwrap());
+        // Improve code coverage by letting the server avoid early returns
+        std::thread::sleep(Duration::from_secs(2));
         let c = std::thread::spawn(|| client().unwrap());
         c.join().unwrap();
         s.join().unwrap();
