@@ -86,3 +86,15 @@ impl AttacherSignal for KqueueAttacherSignal {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod tests {
+    use super::KqueueAttacher;
+    use crate::attach::tests::test_attacher;
+
+    #[test]
+    fn test_inotify_attacher() {
+        test_attacher::<KqueueAttacher>();
+    }
+}

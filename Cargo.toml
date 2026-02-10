@@ -36,6 +36,7 @@ uds_windows = { version = "1" }
 capnpc = "0.25"
 
 [dev-dependencies]
+futures-lite = "2"
 sluice = "0.6"
 
 [lints.rust]

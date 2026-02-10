@@ -75,3 +75,15 @@ impl AttacherSignal for UnixAttacherSignal {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod tests {
+    use super::UnixAttacher;
+    use crate::attach::tests::test_attacher;
+
+    #[test]
+    fn test_inotify_attacher() {
+        test_attacher::<UnixAttacher>();
+    }
+}

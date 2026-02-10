@@ -39,3 +39,59 @@ pub use inotify_attacher::InotifyAttacher as DefaultAttacher;
 pub use kqueue_attacher::KqueueAttacher as DefaultAttacher;
 #[cfg(all(unix, not(target_os = "macos"), not(feature = "inotify")))]
 pub use unix_attacher::UnixAttacher as DefaultAttacher;
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod tests {
+    use std::{pin::pin, time::Duration};
+
+    use async_io::Timer;
+    use futures::{select, FutureExt};
+    use futures_lite::future::or;
+
+    use super::Attacher;
+    use crate::attach::AttacherSignal;
+
+    // The attacher tests need to run separately
+    static ATTACHER_TEST_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    pub(crate) fn test_attacher<A>()
+    where
+        A: Attacher,
+    {
+        let _attacher_test = ATTACHER_TEST_MUTEX.lock();
+
+        let mut exec = futures::executor::LocalPool::new();
+
+        let res = exec.run_until(or(
+            async {
+                let signaled = A::signaled();
+                let mut signal = A::signal(std::process::id())?;
+                signal.send().await?;
+                signaled.await?;
+                drop(signal);
+
+                let mut signaled = pin!(A::signaled().fuse());
+                select! {
+                    res = signaled => {
+                        res?;
+                        panic!("Should not be signaled yet");
+                    }
+                    _ = Timer::after(Duration::from_millis(500)).fuse() => ()
+                };
+
+                let mut signal = A::signal(std::process::id())?;
+                signal.send().await?;
+                signaled.await?;
+                drop(signal);
+
+                Ok::<_, Box<dyn std::error::Error>>(())
+            },
+            Timer::after(Duration::from_secs(5)).then(async |_| Err("Test timeout".into())),
+        ));
+
+        exec.run();
+
+        res.unwrap();
+    }
+}

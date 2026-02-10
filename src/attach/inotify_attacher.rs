@@ -71,3 +71,15 @@ impl AttacherSignal for InotifyAttacherSignal {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod tests {
+    use super::InotifyAttacher;
+    use crate::attach::tests::test_attacher;
+
+    #[test]
+    fn test_inotify_attacher() {
+        test_attacher::<InotifyAttacher>();
+    }
+}
