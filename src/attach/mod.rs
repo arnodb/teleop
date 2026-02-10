@@ -53,7 +53,7 @@ mod tests {
     use crate::attach::AttacherSignal;
 
     // The attacher tests need to run separately
-    static ATTACHER_TEST_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    pub(crate) static ATTACHER_TEST_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
     pub(crate) fn test_attacher<A>()
     where
