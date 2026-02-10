@@ -2,14 +2,17 @@ use std::{fs::File, path::PathBuf};
 
 use sysinfo::{Pid, System};
 
+#[cfg_attr(windows, allow(unused))]
 pub struct AutoDropFile(PathBuf);
 
 impl AutoDropFile {
+    #[cfg_attr(windows, allow(unused))]
     pub fn create(path: PathBuf) -> std::io::Result<Self> {
         File::create(&path)?;
         Ok(Self(path))
     }
 
+    #[cfg_attr(windows, allow(unused))]
     pub fn exists(&self) -> Result<bool, std::io::Error> {
         std::fs::exists(&self.0)
     }
@@ -23,6 +26,7 @@ impl Drop for AutoDropFile {
     }
 }
 
+#[cfg_attr(windows, allow(unused))]
 pub fn attach_file_path(pid: u32) -> Result<PathBuf, Box<dyn std::error::Error>> {
     let sysinfo_pid = if let Ok(pid) = usize::try_from(pid) {
         Pid::from(pid)

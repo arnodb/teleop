@@ -41,6 +41,7 @@ jobs:
     with:
       rust_toolchain: stable
       rust_features: --no-default-features
+      with_clippy: true
       with_audit: true
 
   main_stable_macos:
@@ -49,4 +50,5 @@ jobs:
     with:
       rust_toolchain: stable
       rust_features: --no-default-features
+      with_clippy: true
       with_audit: true

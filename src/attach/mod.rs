@@ -66,6 +66,7 @@ mod tests {
     // The attacher tests need to run separately
     pub(crate) static ATTACHER_TEST_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
+    #[cfg_attr(windows, allow(unused))]
     pub(crate) fn test_attacher<A, W>(wrong_signal: W)
     where
         A: Attacher,
