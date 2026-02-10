@@ -39,10 +39,10 @@ jobs:
         run: sudo apt-get install -y capnproto
 
       - name: Generate code coverage
-        run: cargo llvm-cov --workspace --all-features --include-build-script --lcov --output-path lcov.info
-
-      - name: Generate code coverage with no default features
-        run: cargo llvm-cov --workspace --no-default-features --include-build-script --lcov --output-path lcov.info
+        run: |
+          cargo llvm-cov --workspace --all-features --include-build-script --no-report
+          cargo llvm-cov --workspace --no-default-features --include-build-script --no-report
+          cargo llvm-cov report --lcov --output-path lcov.info
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
