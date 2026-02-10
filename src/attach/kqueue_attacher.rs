@@ -1,7 +1,6 @@
 //! Inotify attacher which creates a file in the process working directory and waits for process to detect it.
 
 use std::{
-    fs::File,
     ops::{Deref, DerefMut},
     os::fd::{AsFd, AsRawFd, BorrowedFd},
     path::Path,
@@ -50,13 +49,7 @@ impl Attacher for KqueueAttacher {
         let attach_file_path = attach_file_path(std::process::id())?;
         let parent = attach_file_path.parent().unwrap_or_else(|| Path::new("."));
         let mut watcher = KqueueWatcherWrapper(Watcher::new()?);
-        let parent_dir = File::open(parent)?;
-        watcher.add_file(
-            &parent_dir,
-            EventFilter::EVFILT_VNODE,
-            FilterFlag::NOTE_WRITE,
-        )?;
-        std::mem::forget(parent_dir);
+        watcher.add_filename(parent, EventFilter::EVFILT_VNODE, FilterFlag::NOTE_WRITE)?;
         watcher.watch()?;
         let async_kqueue = Async::new_nonblocking(watcher)?;
         loop {
