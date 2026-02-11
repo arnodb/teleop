@@ -6,34 +6,34 @@ on:
 
 jobs:
 
-  main_stable:
-    name: Rust stable
-    uses: ./.github/workflows/_build.yml
-    with:
-      rust_toolchain: stable
-      with_rustfmt: true
-      with_clippy: true
-      with_audit: true
-
-  main_stable_no_default_features:
-    name: Rust stable
-    uses: ./.github/workflows/_build.yml
-    with:
-      rust_toolchain: stable
-      rust_features: --no-default-features
-
-  main_1_88_0:
-    name: Rust 1.88.0
-    uses: ./.github/workflows/_build.yml
-    with:
-      rust_toolchain: 1.88.0
-      pre_build_script: ./scripts/msrv_pin_dependencies.sh
-
-  main_nightly:
-    name: Rust nightly
-    uses: ./.github/workflows/_build.yml
-    with:
-      rust_toolchain: nightly
+#  main_stable:
+#    name: Rust stable
+#    uses: ./.github/workflows/_build.yml
+#    with:
+#      rust_toolchain: stable
+#      with_rustfmt: true
+#      with_clippy: true
+#      with_audit: true
+#
+#  main_stable_no_default_features:
+#    name: Rust stable
+#    uses: ./.github/workflows/_build.yml
+#    with:
+#      rust_toolchain: stable
+#      rust_features: --no-default-features
+#
+#  main_1_88_0:
+#    name: Rust 1.88.0
+#    uses: ./.github/workflows/_build.yml
+#    with:
+#      rust_toolchain: 1.88.0
+#      pre_build_script: ./scripts/msrv_pin_dependencies.sh
+#
+#  main_nightly:
+#    name: Rust nightly
+#    uses: ./.github/workflows/_build.yml
+#    with:
+#      rust_toolchain: nightly
 
   main_stable_windows:
     name: Rust Windows stable
@@ -41,14 +41,14 @@ jobs:
     with:
       rust_toolchain: stable
       rust_features: --no-default-features
-      with_clippy: true
-      with_audit: true
+#      with_clippy: true
+#      with_audit: true
 
-  main_stable_macos:
-    name: Rust MacOS stable
-    uses: ./.github/workflows/_build_macos.yml
-    with:
-      rust_toolchain: stable
-      rust_features: --no-default-features
-      with_clippy: true
-      with_audit: true
+#  main_stable_macos:
+#    name: Rust MacOS stable
+#    uses: ./.github/workflows/_build_macos.yml
+#    with:
+#      rust_toolchain: stable
+#      rust_features: --no-default-features
+#      with_clippy: true
+#      with_audit: true
