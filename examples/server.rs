@@ -42,6 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             futures::select! {
                 stream = futures::StreamExt::next(&mut conn_stream).fuse() => {
                     if let Some(stream) = stream {
+                        dbg!("server received stream");
                         let (stream, _addr) = stream?;
                         if let Err(e) = spawn.spawn_local({
                             let client = client.client.hook.clone();
