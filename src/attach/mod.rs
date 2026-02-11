@@ -7,6 +7,8 @@
 #[cfg(unix)]
 pub mod unix_socket;
 #[cfg(windows)]
+pub mod windows_named_pipe;
+#[cfg(windows)]
 pub mod windows_unix_socket;
 
 pub mod attacher;
@@ -15,4 +17,4 @@ pub mod attacher;
 #[cfg(unix)]
 pub use unix_socket::{connect, listen};
 #[cfg(windows)]
-pub use windows_unix_socket::{connect, listen};
+pub use windows_named_pipe::{connect, listen};
