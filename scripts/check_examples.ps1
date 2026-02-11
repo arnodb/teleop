@@ -2,6 +2,8 @@ $ErrorActionPreference = "Stop"
 
 cargo build --examples
 
+$env:RUST_BACKTRACE = 1
+
 $env:PID_FILE = [System.IO.Path]::GetTempFileName()
 
 try {
