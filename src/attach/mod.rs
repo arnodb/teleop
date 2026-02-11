@@ -7,6 +7,8 @@ use std::future::Future;
 #[cfg(unix)]
 pub mod unix_socket;
 #[cfg(windows)]
+pub mod windows_named_pipe;
+#[cfg(windows)]
 pub mod windows_unix_socket;
 
 pub mod dummy_attacher;
@@ -34,7 +36,7 @@ pub trait AttacherSignal {
 #[cfg(unix)]
 pub use unix_socket::{connect, listen};
 #[cfg(windows)]
-pub use windows_unix_socket::{connect, listen};
+pub use windows_named_pipe::{connect, listen};
 
 // Decide which attacher is the default
 
