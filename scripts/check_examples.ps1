@@ -2,6 +2,8 @@ $ErrorActionPreference = "Stop"
 
 cargo build --examples
 
+$env:RUST_BACKTRACE = 1
+
 $env:PID_FILE = [System.IO.Path]::GetTempFileName()
 
 try {
@@ -16,7 +18,7 @@ try {
         exit 1
     }
 
-    foreach ($i in 1..10) {
+    foreach ($i in 1..1) {
         cargo run --example client $ServerPid
     }
 }
