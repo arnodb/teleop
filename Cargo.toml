@@ -41,3 +41,9 @@ sluice = "0.6"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage,coverage_nightly)'] }
+
+[patch.crates-io]
+async-io = { git = "https://github.com/klu-dev/async-io.git", branch = "kail/windows_named_pipe" }
+#async-io = { path = "../async-io" }
+polling = { git = "https://github.com/klu-dev/polling.git", branch = "kail/windows_file" }
+#polling = { path = "../polling" }
