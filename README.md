@@ -36,6 +36,28 @@ Teleop supports only Cap’n Proto RPC, but it is designed such as more ways to 
 
 Teleop provides a root interface named `Teleop` (see `teleop.capnp`) which gives access to arbitrary services.
 
+## Process discovery
+
+At this time, the process discovery is very likely to remain a per app process for the following reasons...
+
+As opposed to Java Console, the client side is not aimed at teleoperating "any" app that has teleop enabled.
+
+Apps likely want to convey more information during the discovery process than just "hey, I'm here". If one takes the Java example, the discovery is performed via the performance data file each process creates (unless told not to).
+
+That is why Teleop provides nothing regarding process discovery. One can see the Quirky Binder use case below which has very basic discovery mechanism.
+
+Happy to revisit the issue later.
+
+## Example
+
+* [server.rs](examples/server.rs) shows how to setup the process to teleoperate, including an `echo` service which will reply to a request by echoing the input.
+* [client.rs](examples/client.rs) shows how to setup the client, initiate the attach process, request the `echo` service, and send echo requests.
+
+## Use cases
+
+* [quirky_binder](https://github.com/arnodb/quirky_binder) uses it to enable quirky teleoperations like inspecting the current state of data processing.
+* [quirky_binder_console](https://github.com/arnodb/quirky_binder_console) uses it to connect to a Quirky Binder process (that has teleop enabled) and display nice SVGs.
+
 ## Where does this come from?
 
 The implementation is very much inspired by Java [Attach API](https://docs.oracle.com/javase/8/docs/technotes/guides/attach/index.html):
@@ -43,9 +65,4 @@ The implementation is very much inspired by Java [Attach API](https://docs.oracl
 * the process to be teleoperated waits for a signal
 * if some conditions are met then it opens the UNIX socket at a known location
 * the client can then connect to the UNIX socket and use the RPC protocol set up by the remote process
-
-## Example
-
-* [server.rs](examples/server.rs) shows how to setup the process to teleoperate, including an `echo` service which will reply to a request by echoing the input.
-* [client.rs](examples/client.rs) shows how to setup the client, initiate the attach process, request the `echo` service, and send echo requests.
 
