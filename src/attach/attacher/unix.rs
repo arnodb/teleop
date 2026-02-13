@@ -3,7 +3,8 @@
 //!
 //! In this post-2025, there is no need to use this:
 //!
-//! * on linux, see [inotify_attacher](`crate::attach::inotify_attacher`) instead (feature `inotify`)
+//! * on `linux`, see `inotify` attacher instead (feature `inotify`)
+//! * on `macos`, see `kqueue` attacher instead
 
 use std::future::Future;
 
@@ -19,6 +20,10 @@ use crate::{
     internal::{attach_file_path, AutoDropFile},
 };
 
+/// UNIX attacher.
+///
+/// It waits for the `QUIT` signal and checks the presence of the attach file in the working
+/// directory.
 pub struct UnixAttacher;
 
 impl Attacher for UnixAttacher {
@@ -54,6 +59,9 @@ impl Attacher for UnixAttacher {
     }
 }
 
+/// UNIX attacher signal.
+///
+/// It creates the attach file and sends a `QUIT` signal to the target process.
 pub struct UnixAttacherSignal {
     pid: u32,
     file: Option<AutoDropFile>,

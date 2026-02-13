@@ -14,6 +14,9 @@ use crate::{
     internal::{attach_file_path, AutoDropFile},
 };
 
+/// Kqueue attacher.
+///
+/// It waits for the attach file to be created in the working directory.
 struct KqueueWatcherWrapper(Watcher);
 
 impl Deref for KqueueWatcherWrapper {
@@ -36,6 +39,9 @@ impl AsFd for KqueueWatcherWrapper {
     }
 }
 
+/// Kqueue attacher signal.
+///
+/// It creates the attach file.
 pub struct KqueueAttacher;
 
 impl Attacher for KqueueAttacher {

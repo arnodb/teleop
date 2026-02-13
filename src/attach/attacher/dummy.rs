@@ -2,6 +2,9 @@
 
 use crate::attach::attacher::{Attacher, AttacherSignal};
 
+/// Dummy attacher.
+///
+/// It does nothing and considers the signal as signaled from the very beginning.
 pub struct DummyAttacher;
 
 impl Attacher for DummyAttacher {
@@ -16,6 +19,9 @@ impl Attacher for DummyAttacher {
     }
 }
 
+/// Dummy attacher signal.
+///
+/// It does nothing.
 pub struct DummyAttacherSignal;
 
 impl AttacherSignal for DummyAttacherSignal {

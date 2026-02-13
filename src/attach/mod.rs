@@ -1,6 +1,8 @@
 //! Sub-module where all attaching APIs are located.
 //!
-//! [`unix_socket`] exposes the attachment functions for communication with a UNIX socket.
+//! See available sub-modules for your platform.
+//!
+//! The default communication channel may vary from one platform to another ([`listen`], [`connect`]).
 
 #[cfg(unix)]
 pub mod unix_socket;

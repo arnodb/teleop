@@ -1,3 +1,7 @@
+//! Attachment mechanisms.
+//!
+//! The default attacher may vary from one platform to another.
+
 pub mod dummy;
 #[cfg(feature = "inotify")]
 pub mod inotify;
@@ -18,15 +22,21 @@ pub use kqueue::KqueueAttacher as DefaultAttacher;
 #[cfg(all(unix, not(target_os = "macos"), not(feature = "inotify")))]
 pub use unix::UnixAttacher as DefaultAttacher;
 
+/// Attacher abstraction.
 pub trait Attacher {
+    /// The type of signal returned by [signal](`Attacher::signal`).
     type Signal: AttacherSignal;
 
+    /// Returns a signal which can be sent multiple times to the target process.
     fn signal(pid: u32) -> Result<Self::Signal, Box<dyn std::error::Error>>;
 
+    /// Waits asynchronously for the signal to be received by the process.
     fn signaled() -> impl Future<Output = Result<(), Box<dyn std::error::Error>>>;
 }
 
+/// Attachment signal abstraction.
 pub trait AttacherSignal {
+    /// Sends the signal asynchronously once.
     fn send(&mut self) -> impl Future<Output = Result<(), Box<dyn std::error::Error>>>;
 }
 

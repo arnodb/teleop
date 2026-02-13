@@ -2,6 +2,7 @@ use echo_capnp::echo::{EchoParams, EchoResults, Server};
 
 capnp::generated_code!(pub mod echo_capnp);
 
+/// Echo service used to test good communication between client and server.
 #[derive(Default)]
 pub struct EchoServer;
 

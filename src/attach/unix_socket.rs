@@ -1,9 +1,4 @@
-//! Attach API using a UNIX socket.
-//!
-//! It is very much inspired by Java [Attach API](https://docs.oracle.com/javase/8/docs/technotes/guides/attach/index.html):
-//! * the process to be teleoperated waits for a signal
-//! * if some conditions are met then it opens the UNIX socket at a known location
-//! * the client can then connect to the unix socket
+//! Communicate through a UNIX socket.
 //!
 //! [`listen`] is the function to call in the process to be teleoperated.
 //!

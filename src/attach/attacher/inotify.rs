@@ -10,6 +10,9 @@ use crate::{
     internal::{attach_file_path, AutoDropFile},
 };
 
+/// Inotify attacher.
+///
+/// It waits for the attach file to be created in the working directory.
 pub struct InotifyAttacher;
 
 impl Attacher for InotifyAttacher {
@@ -51,6 +54,9 @@ impl Attacher for InotifyAttacher {
     }
 }
 
+/// Inotify attacher signal.
+///
+/// It creates the attach file.
 pub struct InotifyAttacherSignal {
     pid: u32,
     file: Option<AutoDropFile>,
