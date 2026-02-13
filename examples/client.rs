@@ -4,7 +4,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     use futures::{task::LocalSpawnExt, AsyncReadExt};
     use teleop::{
-        attach::{connect, DefaultAttacher},
+        attach::{attacher::DefaultAttacher, connect},
         operate::capnp::{client_connection, echo::echo_capnp},
     };
 

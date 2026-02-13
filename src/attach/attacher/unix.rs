@@ -15,7 +15,7 @@ use nix::{
 };
 
 use crate::{
-    attach::{Attacher, AttacherSignal},
+    attach::attacher::{Attacher, AttacherSignal},
     internal::{attach_file_path, AutoDropFile},
 };
 
@@ -80,7 +80,7 @@ impl AttacherSignal for UnixAttacherSignal {
 #[cfg_attr(coverage_nightly, coverage(off))]
 mod tests {
     use super::UnixAttacher;
-    use crate::attach::tests::test_attacher;
+    use crate::attach::attacher::tests::test_attacher;
 
     #[test]
     fn test_unix_attacher() {

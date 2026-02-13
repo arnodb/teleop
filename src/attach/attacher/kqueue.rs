@@ -10,7 +10,7 @@ use async_io::Async;
 use kqueue::{EventFilter, FilterFlag, Watcher};
 
 use crate::{
-    attach::{Attacher, AttacherSignal},
+    attach::attacher::{Attacher, AttacherSignal},
     internal::{attach_file_path, AutoDropFile},
 };
 
@@ -96,7 +96,7 @@ mod tests {
 
     use super::KqueueAttacher;
     use crate::{
-        attach::tests::test_attacher,
+        attach::attacher::tests::test_attacher,
         internal::{attach_file_path, AutoDropFile},
     };
 

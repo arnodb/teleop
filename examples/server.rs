@@ -9,7 +9,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     use async_io::Timer;
     use futures::{task::LocalSpawnExt, AsyncReadExt, FutureExt};
     use teleop::{
-        attach::{listen, DefaultAttacher},
+        attach::{attacher::DefaultAttacher, listen},
         operate::capnp::{
             echo::{echo_capnp, EchoServer},
             run_server_connection, teleop_capnp, TeleopServer,

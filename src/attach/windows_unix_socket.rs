@@ -28,7 +28,7 @@ use futures::{
 };
 use uds_windows::{SocketAddr, UnixListener, UnixStream};
 
-use crate::attach::{Attacher, AttacherSignal};
+use crate::attach::attacher::{Attacher, AttacherSignal};
 
 struct UdsListenerWrapper(UnixListener);
 
@@ -167,12 +167,12 @@ mod tests {
     };
 
     use super::*;
-    use crate::attach::{tests::ATTACHER_TEST_MUTEX, DefaultAttacher};
+    use crate::{attach::attacher::DefaultAttacher, tests::ATTACH_PROCESS_TEST_MUTEX};
 
     #[test]
     fn test_unix_socket_attachment() {
         // This test may conflict with attacher tests
-        let _attacher_test = ATTACHER_TEST_MUTEX.lock();
+        let _attacher_test = ATTACH_PROCESS_TEST_MUTEX.lock();
 
         let (sender, receiver) = oneshot::channel::<()>();
 

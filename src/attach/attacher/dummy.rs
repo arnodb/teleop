@@ -1,6 +1,6 @@
 //! Dummy attacher which listens immediately.
 
-use crate::attach::{Attacher, AttacherSignal};
+use crate::attach::attacher::{Attacher, AttacherSignal};
 
 pub struct DummyAttacher;
 
@@ -33,7 +33,7 @@ mod tests {
     use futures::{select, FutureExt};
 
     use super::DummyAttacher;
-    use crate::attach::{Attacher, AttacherSignal};
+    use crate::attach::attacher::{Attacher, AttacherSignal};
 
     #[test]
     fn test_dummy_attacher() {

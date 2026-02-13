@@ -34,3 +34,10 @@ pub mod attach;
 pub mod operate;
 
 mod internal;
+
+#[cfg(test)]
+#[cfg_attr(coverage_nightly, coverage(off))]
+mod tests {
+    // The attacher tests need to run separately
+    pub(crate) static ATTACH_PROCESS_TEST_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+}
