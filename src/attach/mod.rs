@@ -58,7 +58,6 @@ mod tests {
 
     use async_io::Timer;
     use futures::{select, FutureExt};
-    use futures_lite::future::or;
 
     use super::Attacher;
     use crate::attach::AttacherSignal;
@@ -76,8 +75,8 @@ mod tests {
 
         let mut exec = futures::executor::LocalPool::new();
 
-        let res = exec.run_until(or(
-            async {
+        let res = exec.run_until(async {
+            let job = async {
                 let signaled = A::signaled();
                 let mut signal = A::signal(std::process::id())?;
                 signal.send().await?;
@@ -109,9 +108,16 @@ mod tests {
                 drop(signal);
 
                 Ok::<_, Box<dyn std::error::Error>>(())
-            },
-            Timer::after(Duration::from_secs(5)).then(async |_| Err("Test timeout".into())),
-        ));
+            };
+
+            let timeout =
+                Timer::after(Duration::from_secs(5)).then(async |_| Err("Test timeout".into()));
+
+            select! {
+                a = job.fuse() => a,
+                b = timeout.fuse() => b,
+            }
+        });
 
         exec.run();
 
