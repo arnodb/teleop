@@ -15,7 +15,7 @@ use std::{
         io::AsRawSocket,
         prelude::{AsSocket, BorrowedSocket},
     },
-    path::PathBuf,
+    path::{Path, PathBuf},
     pin::Pin,
     time::Duration,
 };
@@ -30,6 +30,7 @@ use uds_windows::{SocketAddr, UnixListener, UnixStream};
 
 use crate::attach::attacher::{Attacher, AttacherSignal};
 
+#[derive(Debug)]
 struct UdsListenerWrapper(UnixListener);
 
 impl Deref for UdsListenerWrapper {
@@ -46,6 +47,7 @@ impl AsSocket for UdsListenerWrapper {
     }
 }
 
+#[derive(Debug)]
 pub struct UdsStream(Async<UnixStream>);
 
 impl AsyncRead for UdsStream {
@@ -118,6 +120,17 @@ where
     A: Attacher,
 {
     let socket_file_path = socket_file_path(pid);
+    connect_to_socket::<A>(pid, &socket_file_path).await
+}
+
+pub async fn connect_to_socket<A>(
+    pid: u32,
+    socket_file_path: impl AsRef<Path>,
+) -> Result<UdsStream, Box<dyn std::error::Error>>
+where
+    A: Attacher,
+{
+    let socket_file_path = socket_file_path.as_ref();
 
     if !socket_file_path.exists() {
         let mut signal = A::signal(pid)?;
@@ -160,6 +173,7 @@ fn socket_file_path(pid: u32) -> PathBuf {
 mod tests {
     use std::pin::pin;
 
+    use assert_matches::assert_matches;
     use futures::{
         channel::oneshot,
         io::{BufReader, BufWriter},
@@ -167,7 +181,16 @@ mod tests {
     };
 
     use super::*;
-    use crate::{attach::attacher::DefaultAttacher, tests::ATTACH_PROCESS_TEST_MUTEX};
+    use crate::{
+        attach::attacher::{dummy::DummyAttacher, DefaultAttacher},
+        tests::ATTACH_PROCESS_TEST_MUTEX,
+    };
+
+    fn socket_file_path_for_failure(pid: u32) -> PathBuf {
+        let mut path = std::env::temp_dir();
+        path.push(format!(".teleop_pid_{pid}_fail"));
+        path
+    }
 
     #[test]
     fn test_unix_socket_attachment() {
@@ -248,5 +271,38 @@ mod tests {
         let c = std::thread::spawn(|| client().unwrap());
         c.join().unwrap();
         s.join().unwrap();
+    }
+
+    #[test]
+    fn test_unix_socket_attachment_failure() {
+        // This test may not conflict with the other tests because
+        // * it uses the dummy attacher
+        // * it uses a special socket path
+
+        let client = || -> Result<(), Box<dyn std::error::Error>> {
+            let pid = std::process::id();
+
+            let mut exec = futures::executor::LocalPool::new();
+
+            let res = exec.run_until(async move {
+                let result =
+                    connect_to_socket::<DummyAttacher>(pid, socket_file_path_for_failure(pid))
+                        .await;
+                let err = assert_matches!(result, Err(err) => err);
+                assert!(
+                    err.to_string().starts_with("Unable to open socket file"),
+                    "Expected error `{err}` to start with `Unable to open socket file`."
+                );
+                Ok::<_, Box<dyn std::error::Error>>(())
+            });
+
+            exec.run();
+
+            res?;
+
+            Ok(())
+        };
+
+        client().unwrap();
     }
 }
