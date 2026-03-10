@@ -9,7 +9,7 @@ use async_io::{
 use async_stream::try_stream;
 use futures::Stream;
 
-use crate::attach::{Attacher, AttacherSignal};
+use crate::attach::attacher::{Attacher, AttacherSignal};
 
 /// Starts listening for attach signals and return incoming connections as a async `Stream`.
 ///
@@ -28,7 +28,7 @@ where
 
         signaled.await?;
 
-        let listener = NamedPipeListener::bind(named_pipe_name(std::process::id()))?;
+        let listener = NamedPipeListener::bind(named_pipe_name(std::process::id()), Default::default(), None)?;
 
         loop {
             let stream = listener.accept().await?;
@@ -66,11 +66,11 @@ where
 
         attempts += 1;
     }
-    return Err(format!(
+    Err(format!(
         "Unable to open named pipe {}: target process {} doesn't respond",
         name, pid
     )
-    .into());
+    .into())
 }
 
 fn named_pipe_name(pid: u32) -> String {
@@ -89,12 +89,12 @@ mod tests {
     };
 
     use super::*;
-    use crate::attach::{tests::ATTACHER_TEST_MUTEX, DefaultAttacher};
+    use crate::{attach::attacher::DefaultAttacher, tests::ATTACH_PROCESS_TEST_MUTEX};
 
     #[test]
     fn test_named_pipe_attachment() {
         // This test may conflict with attacher tests
-        let _attacher_test = ATTACHER_TEST_MUTEX.lock();
+        let _attacher_test = ATTACH_PROCESS_TEST_MUTEX.lock();
 
         let (sender, receiver) = oneshot::channel::<()>();
 
